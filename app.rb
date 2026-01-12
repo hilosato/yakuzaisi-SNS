@@ -8,15 +8,13 @@ set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
 enable :sessions
 
-# --- セキュリティ修正：鍵を64文字以上に長くしました ---
+# セキュリティチェック用（64文字以上）
 set :session_secret, 'katabami_pharmacy_project_2026_super_secure_long_secret_key_over_64_bytes_for_render_deployment'
 
 # --- データベース準備 ---
 def setup_db
   db = SQLite3::Database.new "sns_v5.db"
-  # 投稿テーブル
   db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT);"
-  # ユーザーテーブル
   db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   db.close
 end
@@ -29,10 +27,13 @@ ensure
   db.close if db
 end
 
-# --- ヘッダー・デザイン ---
+# --- デザイン（投稿ボタンをメニューに追加） ---
 def header_menu
   user_status = if session[:user]
-    "<a href='/profile' class='nav-link'>👤 プロフィール</a> <a href='/logout' class='nav-link'>ログアウト</a>"
+    # ログイン中は「投稿」「プロフィール」を表示
+    "<a href='/post_new' class='nav-link'>✍️ 投稿</a> 
+     <a href='/profile' class='nav-link'>👤 設定</a> 
+     <a href='/logout' class='nav-link'>ログアウト</a>"
   else
     "<a href='/login_page' class='nav-link'>ログイン / 登録</a>"
   end
@@ -45,26 +46,34 @@ def header_menu
     :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; }
     body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
     .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-    nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-    .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; }
+    nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
     .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
     .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 980px; cursor: pointer; font-weight: 600; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
     .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
     .lock-banner { background: #fff9e6; border: 1px solid #ffe58f; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
     .tag { background: #e8f2ff; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
-    input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; }
+    input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; font-size: 1rem; }
   </style>
-  <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
+  <nav>
+    <a href='/' class='nav-brand'>PharmaShare</a>
+    <div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div>
+  </nav>
   #{flash_msg}
   <div class='container'>
   "
 end
 
-# --- ルート ---
+# --- メインロジック ---
 
 get '/' do
   html = header_menu + "<h1>最新の知恵</h1>"
+  # ログイン中なら投稿を促す小さなバナーを出す
+  if session[:user]
+    html += "<div style='margin-bottom:20px;'><a href='/post_new' style='text-decoration:none; color:var(--primary); font-weight:600;'>➕ 新しい知恵を投稿する</a></div>"
+  end
+
   query do |db|
     db.execute("SELECT * FROM posts WHERE parent_id = -1 ORDER BY id DESC").each do |row|
       html += "
@@ -80,6 +89,7 @@ get '/' do
 end
 
 get '/post/:id' do
+  # --- 第2段階チェック ---
   unless session[:user]
     return header_menu + "<div class='lock-banner'><h3>🔒 続きはログイン後に読めます</h3><p>詳細を読むにはアカウント作成（メアド不要）が必要です。</p><a href='/login_page' class='btn-primary'>ログイン / 登録して続きを読む</a></div></div>"
   end
@@ -103,10 +113,11 @@ get '/post/:id' do
 
   replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><div>👨‍⚕️ #{r[1]}</div><p>#{r[4]}</p></div>" }
 
+  # --- 第3段階チェック：コメント ---
   if user_email && user_email != ""
     html += "<div class='post-card'><h4>返信を書く</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' required placeholder='コメントを入力'></textarea><button type='submit' class='btn-primary'>返信を送る</button></form></div>"
   else
-    html += "<div class='lock-banner' style='background:#eefbff; border-color:#bee5eb;'><h4>✉️ コメントするにはメールアドレスの登録が必要です</h4><p>信頼性向上のため、投稿機能にはメアド登録をお願いしています。</p><a href='/profile' class='btn-primary' style='background:#17a2b8;'>プロフィールからメアドを登録する</a></div>"
+    html += "<div class='lock-banner' style='background:#eefbff; border-color:#bee5eb;'><h4>✉️ 返信にはメアド登録が必要です</h4><a href='/profile' class='btn-primary' style='background:#17a2b8;'>設定画面でメアドを登録する</a></div>"
   end
   html + "</div>"
 end
@@ -116,10 +127,11 @@ get '/post_new' do
   user_email = nil
   query { |db| user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0) }
 
+  # --- 第3段階チェック：新規投稿 ---
   if user_email && user_email != ""
-    header_menu + "<div class='post-card'><h2>✍️ 知恵を共有する</h2><form action='/post' method='post'><label>タイトル</label><input type='text' name='title' required><label>薬品名</label><input type='text' name='drug_name' required><label>内容</label><textarea name='message' style='height:120px;' required></textarea><button type='submit' class='btn-primary'>公開する</button></form></div></div>"
+    header_menu + "<div class='post-card'><h2>✍️ 知恵を共有する</h2><form action='/post' method='post'><label>タイトル</label><input type='text' name='title' required placeholder='例：吸入指導のコツ'><label>薬品名</label><input type='text' name='drug_name' required placeholder='例：アドエア'><label>内容</label><textarea name='message' style='height:200px;' required placeholder='内容を入力してください'></textarea><button type='submit' class='btn-primary'>公開する</button></form></div></div>"
   else
-    header_menu + "<div class='lock-banner'><h3>✉️ 投稿にはメールアドレスの登録が必要です</h3><p>アカウント設定からメールアドレスを登録してください。</p><a href='/profile' class='btn-primary'>設定画面へ</a></div></div>"
+    header_menu + "<div class='lock-banner'><h3>✉️ 投稿にはメールアドレスの登録が必要です</h3><p>信頼性向上のため、発信者にはメールアドレスの登録をお願いしています。</p><a href='/profile' class='btn-primary'>設定画面でメアドを登録する</a></div></div>"
   end
 end
 
@@ -130,19 +142,19 @@ get '/profile' do
   
   header_menu + "
     <div class='post-card'>
-      <h2>👤 プロフィール設定</h2>
+      <h2>👤 設定</h2>
       <p>ユーザー名: <strong>#{session[:user]}</strong></p>
       <form action='/update_profile' method='post'>
         <label>メールアドレス (投稿・コメントに必要)</label>
         <input type='email' name='email' value='#{user_email}' placeholder='example@mail.com' required>
-        <button type='submit' class='btn-primary' style='background:var(--accent);'>保存する</button>
+        <button type='submit' class='btn-primary' style='background:var(--accent);'>保存して投稿を有効にする</button>
       </form>
     </div></div>"
 end
 
 post '/update_profile' do
   query { |db| db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]]) }
-  session[:notice] = "プロフィールを更新しました！"
+  session[:notice] = "設定を更新しました！投稿が可能になりました。"
   redirect '/'
 end
 
@@ -163,24 +175,24 @@ post '/auth' do
       hash_pass = BCrypt::Password.create(password)
       db.execute("INSERT INTO users (user_name, password_digest) VALUES (?, ?)", [user_name, hash_pass])
       session[:user] = user_name
-      session[:notice] = "登録完了！さらにメアド登録で投稿が可能になります。"
+      session[:notice] = "登録完了！"
       redirect '/'
     end
   end
 end
 
 get '/login_page' do
-  header_menu + "<div class='post-card' style='max-width:400px; margin: 0 auto;'><h2 style='text-align:center;'>🔑 ログイン / 登録</h2><p style='text-align:center; color:var(--secondary); font-size:0.8rem;'>メアド不要で今すぐアカウント作成！</p><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パスワード' required><button type='submit' class='btn-primary'>ログイン・登録</button></form></div></div>"
+  header_menu + "<div class='post-card' style='max-width:400px; margin: 0 auto;'><h2 style='text-align:center;'>🔑 ログイン / 登録</h2><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パスワード' required><button type='submit' class='btn-primary'>ログイン・登録</button></form></div></div>"
 end
 
 post '/post' do
   jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
-  parent_id = params[:parent_id] || -1
+  parent_id = params[:parent_id].to_i
   query do |db|
     db.execute("INSERT INTO posts (user_name, drug_name, message, title, created_at, parent_id) VALUES (?, ?, ?, ?, ?, ?)", 
                [session[:user], params[:drug_name], params[:message], params[:title], jst_time, parent_id])
   end
-  session[:notice] = "送信完了！"
+  session[:notice] = "送信が完了しました！"
   redirect (parent_id == -1 ? '/' : "/post/#{parent_id}")
 end
 
