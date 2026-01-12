@@ -7,14 +7,16 @@ require 'bcrypt'
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
 enable :sessions
-set :session_secret, 'pharma_secret_katabami_2026'
+
+# --- セキュリティ修正：鍵を64文字以上に長くしました ---
+set :session_secret, 'katabami_pharmacy_project_2026_super_secure_long_secret_key_over_64_bytes_for_render_deployment'
 
 # --- データベース準備 ---
 def setup_db
   db = SQLite3::Database.new "sns_v5.db"
   # 投稿テーブル
   db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT);"
-  # ユーザーテーブル（emailカラムを追加）
+  # ユーザーテーブル
   db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   db.close
 end
@@ -27,7 +29,7 @@ ensure
   db.close if db
 end
 
-# --- デザイン補助 ---
+# --- ヘッダー・デザイン ---
 def header_menu
   user_status = if session[:user]
     "<a href='/profile' class='nav-link'>👤 プロフィール</a> <a href='/logout' class='nav-link'>ログアウト</a>"
@@ -59,7 +61,7 @@ def header_menu
   "
 end
 
-# --- メインロジック ---
+# --- ルート ---
 
 get '/' do
   html = header_menu + "<h1>最新の知恵</h1>"
@@ -78,7 +80,6 @@ get '/' do
 end
 
 get '/post/:id' do
-  # --- 第2段階チェック：ログインが必要 ---
   unless session[:user]
     return header_menu + "<div class='lock-banner'><h3>🔒 続きはログイン後に読めます</h3><p>詳細を読むにはアカウント作成（メアド不要）が必要です。</p><a href='/login_page' class='btn-primary'>ログイン / 登録して続きを読む</a></div></div>"
   end
@@ -97,13 +98,11 @@ get '/post/:id' do
       <span class='tag'>💊 #{post[2]}</span>
       <h1>#{post[7]}</h1>
       <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0;'>#{post[4]}</div>
-      #{ post[8] ? "<img src='/uploads/#{post[8]}' style='width:100%; border-radius:12px;'>" : "" }
     </div>
     <h3 style='margin-top:40px;'>💬 返信</h3>"
 
   replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><div>👨‍⚕️ #{r[1]}</div><p>#{r[4]}</p></div>" }
 
-  # --- 第3段階チェック：コメントにはメアドが必要 ---
   if user_email && user_email != ""
     html += "<div class='post-card'><h4>返信を書く</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' required placeholder='コメントを入力'></textarea><button type='submit' class='btn-primary'>返信を送る</button></form></div>"
   else
@@ -124,8 +123,6 @@ get '/post_new' do
   end
 end
 
-# --- ユーザー設定（第3段階への入り口） ---
-
 get '/profile' do
   redirect '/login_page' unless session[:user]
   user_email = nil
@@ -145,11 +142,10 @@ end
 
 post '/update_profile' do
   query { |db| db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]]) }
-  session[:notice] = "プロフィールを更新しました！これで投稿が可能です。"
+  session[:notice] = "プロフィールを更新しました！"
   redirect '/'
 end
 
-# --- 認証（前回と同様） ---
 post '/auth' do
   user_name, password = params[:user_name], params[:password]
   query do |db|
