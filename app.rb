@@ -2,231 +2,194 @@ require 'sinatra'
 require 'sqlite3'
 require 'time'
 require 'fileutils'
+require 'bcrypt'
 
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
 enable :sessions
-set :session_secret, 'pharmacist_secret_key_katabami_papa_mama_children_2026_super_long_secret_key_64_bytes'
+set :session_secret, 'pharma_secret_katabami_2026'
 
 # --- データベース準備 ---
 def setup_db
-  db = SQLite3::Database.new "sns_v4.db" # 検索機能のために少し構造を整理
-  db.execute <<-SQL
-    CREATE TABLE IF NOT EXISTS posts (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      user_name TEXT,
-      drug_name TEXT,
-      likes INTEGER DEFAULT 0,
-      message TEXT,
-      parent_id INTEGER DEFAULT -1,
-      created_at TEXT,
-      title TEXT,
-      password TEXT,
-      image_path TEXT
-    );
-  SQL
+  db = SQLite3::Database.new "sns_v5.db"
+  # 投稿テーブル
+  db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT);"
+  # ユーザーテーブル（emailカラムを追加）
+  db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   db.close
 end
 setup_db
 
 def query
-  db = SQLite3::Database.new "sns_v4.db"
+  db = SQLite3::Database.new "sns_v5.db"
   yield db
 ensure
   db.close if db
 end
 
-# --- デザイン（CSS追加：フラッシュメッセージ用） ---
+# --- デザイン補助 ---
 def header_menu
   user_status = if session[:user]
-    "<span class='user-badge'>👤 #{session[:user]}</span> <a href='/logout' class='nav-link logout'>ログアウト</a>"
+    "<a href='/profile' class='nav-link'>👤 プロフィール</a> <a href='/logout' class='nav-link'>ログアウト</a>"
   else
-    "<a href='/login_page' class='nav-link login'>ログイン</a>"
+    "<a href='/login_page' class='nav-link'>ログイン / 登録</a>"
   end
 
-  # 通知メッセージ（フラッシュメッセージ）の取得
-  flash_msg = ""
-  if session[:notice]
-    flash_msg = "<div class='flash-notice'>#{session[:notice]}</div>"
-    session[:notice] = nil # 一度表示したら消す
-  end
+  flash_msg = session[:notice] ? "<div class='flash-notice'>#{session[:notice]}</div>" : ""
+  session[:notice] = nil
 
   "
   <style>
-    :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background-color: var(--bg); color: var(--text); }
+    :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; }
+    body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); }
     .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-    nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; position: sticky; top: 0; z-index: 100; border-bottom: 1px solid rgba(0,0,0,0.1); }
-    .nav-brand { font-weight: 700; font-size: 1.2rem; color: var(--primary); text-decoration: none; }
-    .nav-links a { color: var(--text); text-decoration: none; font-weight: 500; margin-left: 20px; font-size: 0.9rem; }
-    .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 24px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 1px solid rgba(0,0,0,0.03); }
-    .drug-tag { display: inline-block; background: #e8f2ff; color: var(--primary); padding: 4px 10px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; margin-bottom: 12px; }
-    .btn-action { background: #f5f5f7; border: none; padding: 8px 16px; border-radius: 980px; cursor: pointer; color: var(--text); font-weight: 600; font-size: 0.85rem; text-decoration: none; }
-    .btn-submit { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 980px; cursor: pointer; font-weight: 600; width: 100%; font-size: 1rem; }
-    input, textarea { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; }
-    
-    /* 検索窓のデザイン */
-    .search-box { margin-bottom: 30px; display: flex; gap: 10px; }
-    .search-input { margin: 0; flex: 1; }
-
-    /* フラッシュメッセージ */
-    .flash-notice { background: #32d74b; color: white; padding: 15px; text-align: center; font-weight: 600; position: fixed; top: 60px; left: 0; right: 0; z-index: 99; animation: slideDown 0.5s ease; }
-    @keyframes slideDown { from { transform: translateY(-100%); } to { transform: translateY(0); } }
+    nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+    .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; }
+    .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
+    .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 980px; cursor: pointer; font-weight: 600; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
+    .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
+    .lock-banner { background: #fff9e6; border: 1px solid #ffe58f; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
+    .tag { background: #e8f2ff; color: var(--primary); padding: 4px 8px; border-radius: 6px; font-size: 0.8rem; font-weight: 600; }
+    input, textarea { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; }
   </style>
-  <nav>
-    <a href='/' class='nav-brand'>PharmaShare</a>
-    <div class='nav-links'>
-      <a href='/'>🏠 ホーム</a>
-      <a href='/post_new'>✍️ 投稿</a>
-      #{user_status}
-    </div>
-  </nav>
+  <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
   #{flash_msg}
   <div class='container'>
   "
 end
 
-# --- ルート ---
+# --- メインロジック ---
 
 get '/' do
-  search_word = params[:q]
-  html = header_menu
-  html += "
-    <h1 style='font-size: 2rem; margin-bottom: 10px;'>最新の知恵</h1>
-    <form action='/' method='get' class='search-box'>
-      <input type='text' name='q' class='search-input' placeholder='薬品名で検索（例：アドエア）' value='#{search_word}'>
-      <button type='submit' class='btn-action' style='background:var(--primary); color:white;'>検索</button>
-    </form>
-  "
-
+  html = header_menu + "<h1>最新の知恵</h1>"
   query do |db|
-    sql = "SELECT * FROM posts WHERE parent_id = -1"
-    args = []
-    if search_word && search_word != ""
-      sql += " AND drug_name LIKE ?"
-      args << "%#{search_word}%"
-    end
-    sql += " ORDER BY id DESC"
-
-    db.execute(sql, args).each do |row|
+    db.execute("SELECT * FROM posts WHERE parent_id = -1 ORDER BY id DESC").each do |row|
       html += "
       <div class='post-card'>
-        <div style='font-size: 0.8rem; color:var(--secondary);'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</div>
-        <span class='drug-tag'>💊 #{row[2]}</span>
-        <a href='/post/#{row[0]}' style='font-size:1.4rem; font-weight:700; text-decoration:none; color:var(--text); display:block; margin:8px 0;'>#{row[7]}</a>
-        #{ row[9] ? "<img src='/uploads/#{row[9]}' style='width:100%; border-radius:12px; margin-top:16px;'>" : "" }
-        <div style='margin-top:20px; display:flex; gap:12px;'>
-          <form action='/like/#{row[0]}' method='post'><button type='submit' class='btn-action'>❤️ #{row[3]}</button></form>
-          <a href='/post/#{row[0]}' class='btn-action'>💬 返信・詳細</a>
-        </div>
+        <span class='tag'>💊 #{row[2]}</span>
+        <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
+        <p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p>
+        <a href='/post/#{row[0]}' style='color:var(--primary); font-weight:600; text-decoration:none;'>詳細をよむ →</a>
       </div>"
     end
   end
   html + "</div>"
 end
 
-get '/post_new' do
-  return header_menu + "<div class='post-card'><h2>ログインが必要です</h2><a href='/login_page' class='btn-submit' style='text-decoration:none; display:block; text-align:center;'>ログインへ</a></div></div>" unless session[:user]
-  header_menu + "
-    <div class='post-card'>
-      <h2>✍️ 知恵を共有する</h2>
-      <form action='/post' method='post' enctype='multipart/form-data'>
-        <input type='hidden' name='user_name' value='#{session[:user]}'>
-        <label>タイトル</label><input type='text' name='title' required>
-        <label>対象の薬品名</label><input type='text' name='drug_name' required>
-        <label>内容</label><textarea name='message' style='height:120px;' required></textarea>
-        <label>📸 写真</label><input type='file' name='myfile' accept='image/*'>
-        <label>🔑 削除用パスワード</label><input type='password' name='password' required>
-        <button type='submit' class='btn-submit'>🚀 投稿を公開する</button>
-      </form>
-    </div></div>"
-end
-
 get '/post/:id' do
-  post, replies = nil, []
+  # --- 第2段階チェック：ログインが必要 ---
+  unless session[:user]
+    return header_menu + "<div class='lock-banner'><h3>🔒 続きはログイン後に読めます</h3><p>詳細を読むにはアカウント作成（メアド不要）が必要です。</p><a href='/login_page' class='btn-primary'>ログイン / 登録して続きを読む</a></div></div>"
+  end
+
+  post, replies, user_email = nil, [], nil
   query do |db|
     post = db.execute("SELECT * FROM posts WHERE id = ?", [params[:id]]).first
     replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [params[:id]])
+    user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0)
   end
   redirect '/' unless post
-  
+
   html = header_menu + "
     <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
     <div class='post-card' style='margin-top:20px;'>
-      <div style='font-size:0.8rem; color:var(--secondary);'>👨‍⚕️ #{post[1]} | 📅 #{post[6]}</div>
-      <span class='drug-tag'>💊 #{post[2]}</span>
-      <h1 style='margin:10px 0;'>#{post[7]}</h1>
-      #{ post[9] ? "<img src='/uploads/#{post[9]}' style='width:100%; border-radius:12px;'>" : "" }
-      <div style='margin:24px 0; line-height:1.8; white-space: pre-wrap;'>#{post[4]}</div>
-      <hr style='border:0; border-top:1px solid #eee;'>
-      <form action='/post_delete/#{post[0]}' method='post' style='display:flex; gap:10px;'>
-        <input type='password' name='del_pass' placeholder='削除パスワード' style='margin:0; flex:1;'>
-        <button type='submit' style='background:#ff3b30; color:white; border:none; padding:10px 20px; border-radius:12px; cursor:pointer;'>🗑️ 削除</button>
-      </form>
-    </div>"
-    # (返信表示とフォーム部分は前と同じなので省略せず実装...)
+      <span class='tag'>💊 #{post[2]}</span>
+      <h1>#{post[7]}</h1>
+      <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0;'>#{post[4]}</div>
+      #{ post[8] ? "<img src='/uploads/#{post[8]}' style='width:100%; border-radius:12px;'>" : "" }
+    </div>
+    <h3 style='margin-top:40px;'>💬 返信</h3>"
+
   replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><div>👨‍⚕️ #{r[1]}</div><p>#{r[4]}</p></div>" }
-  if session[:user]
-    html += "<div class='post-card'><h4>返信</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='user_name' value='#{session[:user]}'><input type='hidden' name='title' value='Re: #{post[7]}'><input type='hidden' name='drug_name' value='#{post[2]}'><textarea name='message' required></textarea><input type='password' name='password' required><button type='submit' class='btn-submit'>返信を送る</button></form></div>"
+
+  # --- 第3段階チェック：コメントにはメアドが必要 ---
+  if user_email && user_email != ""
+    html += "<div class='post-card'><h4>返信を書く</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' required placeholder='コメントを入力'></textarea><button type='submit' class='btn-primary'>返信を送る</button></form></div>"
+  else
+    html += "<div class='lock-banner' style='background:#eefbff; border-color:#bee5eb;'><h4>✉️ コメントするにはメールアドレスの登録が必要です</h4><p>信頼性向上のため、投稿機能にはメアド登録をお願いしています。</p><a href='/profile' class='btn-primary' style='background:#17a2b8;'>プロフィールからメアドを登録する</a></div>"
   end
   html + "</div>"
 end
 
-# --- アクション ---
+get '/post_new' do
+  redirect '/login_page' unless session[:user]
+  user_email = nil
+  query { |db| user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0) }
 
-post '/login' do
-  session[:user] = params[:user_name]
-  session[:notice] = "ようこそ、#{session[:user]} さん！"
+  if user_email && user_email != ""
+    header_menu + "<div class='post-card'><h2>✍️ 知恵を共有する</h2><form action='/post' method='post'><label>タイトル</label><input type='text' name='title' required><label>薬品名</label><input type='text' name='drug_name' required><label>内容</label><textarea name='message' style='height:120px;' required></textarea><button type='submit' class='btn-primary'>公開する</button></form></div></div>"
+  else
+    header_menu + "<div class='lock-banner'><h3>✉️ 投稿にはメールアドレスの登録が必要です</h3><p>アカウント設定からメールアドレスを登録してください。</p><a href='/profile' class='btn-primary'>設定画面へ</a></div></div>"
+  end
+end
+
+# --- ユーザー設定（第3段階への入り口） ---
+
+get '/profile' do
+  redirect '/login_page' unless session[:user]
+  user_email = nil
+  query { |db| user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0) }
+  
+  header_menu + "
+    <div class='post-card'>
+      <h2>👤 プロフィール設定</h2>
+      <p>ユーザー名: <strong>#{session[:user]}</strong></p>
+      <form action='/update_profile' method='post'>
+        <label>メールアドレス (投稿・コメントに必要)</label>
+        <input type='email' name='email' value='#{user_email}' placeholder='example@mail.com' required>
+        <button type='submit' class='btn-primary' style='background:var(--accent);'>保存する</button>
+      </form>
+    </div></div>"
+end
+
+post '/update_profile' do
+  query { |db| db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]]) }
+  session[:notice] = "プロフィールを更新しました！これで投稿が可能です。"
   redirect '/'
+end
+
+# --- 認証（前回と同様） ---
+post '/auth' do
+  user_name, password = params[:user_name], params[:password]
+  query do |db|
+    user = db.execute("SELECT * FROM users WHERE user_name = ?", [user_name]).first
+    if user
+      if BCrypt::Password.new(user[2]) == password
+        session[:user] = user_name
+        session[:notice] = "おかえりなさい！"
+        redirect '/'
+      else
+        session[:notice] = "パスワードが違います"
+        redirect '/login_page'
+      end
+    else
+      hash_pass = BCrypt::Password.create(password)
+      db.execute("INSERT INTO users (user_name, password_digest) VALUES (?, ?)", [user_name, hash_pass])
+      session[:user] = user_name
+      session[:notice] = "登録完了！さらにメアド登録で投稿が可能になります。"
+      redirect '/'
+    end
+  end
+end
+
+get '/login_page' do
+  header_menu + "<div class='post-card' style='max-width:400px; margin: 0 auto;'><h2 style='text-align:center;'>🔑 ログイン / 登録</h2><p style='text-align:center; color:var(--secondary); font-size:0.8rem;'>メアド不要で今すぐアカウント作成！</p><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パスワード' required><button type='submit' class='btn-primary'>ログイン・登録</button></form></div></div>"
+end
+
+post '/post' do
+  jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
+  parent_id = params[:parent_id] || -1
+  query do |db|
+    db.execute("INSERT INTO posts (user_name, drug_name, message, title, created_at, parent_id) VALUES (?, ?, ?, ?, ?, ?)", 
+               [session[:user], params[:drug_name], params[:message], params[:title], jst_time, parent_id])
+  end
+  session[:notice] = "送信完了！"
+  redirect (parent_id == -1 ? '/' : "/post/#{parent_id}")
 end
 
 get '/logout' do
   session.clear
   session[:notice] = "ログアウトしました"
   redirect '/'
-end
-
-post '/post' do
-  img_name = nil
-  if params[:myfile]
-    img_name = Time.now.to_i.to_s + "_" + params[:myfile][:filename]
-    FileUtils.cp(params[:myfile][:tempfile].path, "./public/uploads/#{img_name}")
-  end
-  parent_id = params[:parent_id] || -1
-  # 日本時間(JST)で時間を取得
-  jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
-
-  query do |db|
-    db.execute("INSERT INTO posts (user_name, drug_name, message, title, created_at, password, image_path, parent_id) VALUES (?, ?, ?, ?, ?, ?, ?, ?)", 
-               [params[:user_name], params[:drug_name], params[:message], params[:title], jst_time, params[:password], img_name, parent_id])
-  end
-  session[:notice] = parent_id == -1 ? "新しい知恵を投稿しました！" : "返信を送信しました！"
-  redirect (parent_id == -1 ? '/' : "/post/#{parent_id}")
-end
-
-post '/post_delete/:id' do
-  query do |db|
-    post = db.execute("SELECT password FROM posts WHERE id = ?", [params[:id]]).first
-    if post && post[0] == params[:del_pass]
-      db.execute("DELETE FROM posts WHERE id = ?", [params[:id]])
-      session[:notice] = "投稿を削除しました"
-      redirect '/'
-    else
-      session[:notice] = "パスワードが正しくありません"
-      redirect "/post/#{params[:id]}"
-    end
-  end
-end
-
-post '/like/:id' do
-  query { |db| db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [params[:id]]) }
-  redirect '/' # いいねは通知なしでサクサク動かす
-end
-
-get '/login_page' do
-  header_menu + "<div class='post-card'><h2>🔑 ログイン</h2><form action='/login' method='post'><input type='text' name='user_name' placeholder='名前' required><button type='submit' class='btn-submit'>ログイン</button></form></div></div>"
-end
-
-get '/uploads/:filename' do
-  send_file "./public/uploads/#{params[:filename]}"
 end
