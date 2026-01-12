@@ -5,8 +5,9 @@ require 'fileutils'
 
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
-enable :sessions # これが「ログイン状態を覚える」魔法のスイッチ
-set :session_secret, 'pharmacist_secret_key' # セキュリティ用の鍵
+enable :sessions # ログイン状態を覚える設定
+# ↓ここを64文字以上の長い鍵に変更したよ！
+set :session_secret, 'pharmacist_secret_key_katabami_papa_mama_children_2026_super_long_secret_key_64_bytes'
 ENV['TZ'] = 'Asia/Tokyo'
 
 # --- データベース準備 ---
@@ -71,7 +72,6 @@ get '/' do
   html = header_menu + "<h2>🏥 薬剤師の知恵フィード</h2>"
   query do |db|
     db.execute("SELECT * FROM posts ORDER BY id DESC").each do |row|
-      # いいねボタンを一覧に配置
       html += "
       <div class='post-card'>
         <div style='color:#65676b; font-size:0.8em;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</div>
@@ -115,7 +115,7 @@ get '/login_page' do
       <input type='text' name='user_name' placeholder='ユーザー名（かたばみパパ 等）' required>
       <button type='submit' class='btn-submit'>ログイン</button>
     </form>
-    <p style='font-size:0.8em; color:gray;'>※今は名前を入れるだけでログイン状態になります（開発中）</p>
+    <p style='font-size:0.8em; color:gray;'>※今は名前を入れるだけでログイン状態になります</p>
   </div>"
   html + "</div>"
 end
@@ -143,13 +143,14 @@ end
 # --- アクション ---
 
 post '/login' do
-  session[:user] = params[:user_name] # セッションに名前を保存！
+  session[:user] = params[:user_name]
   redirect '/'
 end
 
 post '/post' do
   img_name = nil
   if params[:myfile]
+    # 画像が選ばれている場合のみ保存処理
     img_name = Time.now.to_i.to_s + "_" + params[:myfile][:filename]
     FileUtils.cp(params[:myfile][:tempfile].path, "./public/uploads/#{img_name}")
   end
@@ -178,7 +179,6 @@ post '/post_delete/:id' do
   end
 end
 
-# 画像を表示するための設定
 get '/uploads/:filename' do
   send_file "./public/uploads/#{params[:filename]}"
 end
