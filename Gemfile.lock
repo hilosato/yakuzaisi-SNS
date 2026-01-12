@@ -2,11 +2,12 @@ GEM
   remote: https://rubygems.org/
   specs:
     base64 (0.3.0)
-    daemons (1.4.1)
-    eventmachine (1.2.7)
     logger (1.7.0)
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
+    nio4r (2.7.5)
+    puma (7.1.0)
+      nio4r (~> 2.0)
     rack (3.2.4)
     rack-protection (4.2.1)
       base64 (>= 0.1.0)
@@ -35,11 +36,6 @@ GEM
     sqlite3 (2.9.0-x86_64-darwin)
     sqlite3 (2.9.0-x86_64-linux-gnu)
     sqlite3 (2.9.0-x86_64-linux-musl)
-    thin (2.0.1)
-      daemons (~> 1.0, >= 1.0.9)
-      eventmachine (~> 1.0, >= 1.0.4)
-      logger
-      rack (>= 1, < 4)
     tilt (2.7.0)
 
 PLATFORMS
@@ -55,10 +51,10 @@ PLATFORMS
   x86_64-linux-musl
 
 DEPENDENCIES
+  puma (~> 7.1)
   rackup (~> 2.3)
   sinatra
   sqlite3
-  thin
 
 BUNDLED WITH
    2.5.3
