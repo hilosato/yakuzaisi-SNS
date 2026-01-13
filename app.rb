@@ -10,7 +10,7 @@ set :bind, '0.0.0.0'
 # セッションを強固に固定（これで再起動してもログインやメアド状態が消えにくくなるよ）
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
-                           :secret => 'katabami_pharmashare_2026_fixed_secret_key'
+                           :secret => 'katabami_pharmashare_2026_fixed_secret_key_long_long_long_long_64chars_over'
 
 DB_NAME = "sns.db"
 
