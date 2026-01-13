@@ -7,19 +7,18 @@ require 'bcrypt'
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
 
-# セッションを強固に固定（これで再起動してもログインやメアド状態が消えにくくなるよ）
+# セッションを強固に固定
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'katabami_pharmashare_2026_fixed_secret_key_long_long_long_long_64chars_over'
 
 DB_NAME = "sns.db"
 
-# カテゴリ定義
 CATEGORIES = {
-  "指導のコツ" => "#0071e3", # 青
-  "症例報告" => "#32d74b",   # 緑
-  "新薬情報" => "#ff9f0a",   # オレンジ
-  "その他" => "#86868b"      # グレー
+  "指導のコツ" => "#0071e3",
+  "症例報告" => "#32d74b",
+  "新薬情報" => "#ff9f0a",
+  "その他" => "#86868b"
 }
 
 def setup_db
@@ -37,7 +36,7 @@ ensure
   db.close if db
 end
 
-# --- デザイン（Apple風スタイル） ---
+# --- デザイン ---
 def header_menu
   user_status = if session[:user]
     "<a href='/post_new' class='nav-link'>✍️ 投稿</a> 
@@ -53,7 +52,7 @@ def header_menu
   "
   <style>
     :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; }
-    body { font-family: -apple-system, BlinkMacSystemFont, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
+    body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
     .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
     nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
     .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
@@ -61,12 +60,12 @@ def header_menu
     .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 24px; border-radius: 980px; cursor: pointer; font-weight: 600; width: 100%; text-decoration: none; display: block; text-align: center; box-sizing: border-box; }
     .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
-    .lock-banner { background: #fff9e6; border: 1px solid #ffe58f; padding: 20px; border-radius: 12px; text-align: center; margin-bottom: 20px; }
     .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; vertical-align: middle; }
-    input, textarea, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; font-size: 1rem; background: white; }
+    .like-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.9rem; color: var(--text); transition: 0.2s; }
+    .like-btn:hover { background: #f5f5f7; border-color: var(--primary); }
+    input, textarea, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; background: white; font-size: 1rem; }
     .search-box { margin-bottom: 30px; display: flex; gap: 10px; }
-    .search-box input { margin: 0; }
-    .search-box button { width: 100px; border-radius: 12px; background: var(--secondary); color: white; border: none; cursor: pointer; font-weight: 600; }
+    .search-box button { width: 100px; background: var(--secondary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
   </style>
   <nav>
     <a href='/' class='nav-brand'>PharmaShare</a>
@@ -78,6 +77,13 @@ def header_menu
 end
 
 # --- メインロジック ---
+
+# 【追加】いいねボタンの処理
+post '/post/:id/like' do
+  redirect '/login_page' unless session[:user]
+  query { |db| db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [params[:id]]) }
+  redirect back
+end
 
 get '/' do
   word = params[:search]
@@ -100,7 +106,20 @@ get '/' do
       posts.each do |row|
         cat_name = row[9] || "その他"
         cat_color = CATEGORIES[cat_name] || "#86868b"
-        html += "<div class='post-card'><span class='tag' style='background:#{cat_color};'>#{cat_name}</span><span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span><h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2><p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p><a href='/post/#{row[0]}' style='color:var(--primary); font-weight:600; text-decoration:none;'>詳細をよむ →</a></div>"
+        likes_count = row[3] || 0
+        html += "
+        <div class='post-card'>
+          <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
+          <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
+          <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
+          <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;'>
+            <p style='color:var(--secondary); font-size:0.85rem; margin:0;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p>
+            <form action='/post/#{row[0]}/like' method='post' style='margin:0;'>
+              <button type='submit' class='like-btn'>👍 #{likes_count}</button>
+            </form>
+          </div>
+          <a href='/post/#{row[0]}' style='color:var(--primary); font-weight:600; text-decoration:none;'>詳細をよむ →</a>
+        </div>"
       end
     end
   end
@@ -122,13 +141,21 @@ get '/post/:id' do
 
   cat_name = post[9] || "その他"
   cat_color = CATEGORIES[cat_name] || "#86868b"
+  likes_count = post[3] || 0
 
   html = header_menu + "
     <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
     <div class='post-card' style='margin-top:20px;'>
-      <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
-      <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{post[2]}</span>
-      <h1>#{post[7]}</h1>
+      <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
+        <div>
+          <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
+          <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{post[2]}</span>
+          <h1>#{post[7]}</h1>
+        </div>
+        <form action='/post/#{post[0]}/like' method='post'>
+          <button type='submit' class='like-btn' style='font-size:1.1rem; padding:8px 16px;'>👍 #{likes_count}</button>
+        </form>
+      </div>
       <p style='color:var(--secondary); font-size:0.85rem;'>投稿者: #{post[1]} | 日時: #{post[6]}</p>
       <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0; font-size:1.1rem;'>#{post[4]}</div>
     </div>"
@@ -148,12 +175,10 @@ get '/post_new' do
   redirect '/login_page' unless session[:user]
   user_email = nil
   query { |db| user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0) }
-
   if user_email.nil? || user_email == ""
     session[:notice] = "投稿にはメールアドレスの登録が必要です"
     redirect '/profile'
   end
-
   cat_options = CATEGORIES.keys.map { |c| "<option value='#{c}'>#{c}</option>" }.join
   header_menu + "<div class='post-card'><h2>✍️ 知恵を共有する</h2><form action='/post' method='post'><input type='hidden' name='parent_id' value='-1'><label>カテゴリ</label><select name='category'>#{cat_options}</select><label>タイトル</label><input type='text' name='title' required><label>薬品名</label><input type='text' name='drug_name' required><label>内容</label><textarea name='message' style='height:200px;' required></textarea><button type='submit' class='btn-primary'>公開する</button></form></div></div>"
 end
@@ -162,14 +187,12 @@ get '/profile' do
   redirect '/login_page' unless session[:user]
   user_email = nil
   query { |db| user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0) }
-  
-  header_menu + "<div class='post-card'><h2>👤 設定</h2><p>ユーザー名: <strong>#{session[:user]}</strong></p><form action='/update_profile' method='post'><label>メールアドレス</label><input type='email' name='email' value='#{user_email}' required placeholder='example@mail.com'><button type='submit' class='btn-primary' style='background:var(--accent);'>保存して投稿を有効にする</button></form></div></div>"
+  header_menu + "<div class='post-card'><h2>👤 設定</h2><p>ユーザー名: <strong>#{session[:user]}</strong></p><form action='/update_profile' method='post'><label>メールアドレス</label><input type='email' name='email' value='#{user_email}' required><button type='submit' class='btn-primary' style='background:var(--accent);'>保存して投稿を有効にする</button></form></div></div>"
 end
 
 post '/update_profile' do
-  redirect '/login_page' unless session[:user]
   query { |db| db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]]) }
-  session[:notice] = "メアドを登録しました！そのまま投稿できます。"
+  session[:notice] = "メアドを登録しました！"
   redirect '/post_new'
 end
 
@@ -180,7 +203,6 @@ post '/auth' do
     if user
       if BCrypt::Password.new(user[2]) == password
         session[:user] = user_name
-        session[:notice] = "おかえりなさい！"
         redirect '/'
       else
         session[:notice] = "パスワードが違います"
@@ -190,7 +212,6 @@ post '/auth' do
       hash_pass = BCrypt::Password.create(password)
       db.execute("INSERT INTO users (user_name, password_digest) VALUES (?, ?)", [user_name, hash_pass])
       session[:user] = user_name
-      session[:notice] = "登録完了しました！"
       redirect '/'
     end
   end
@@ -214,6 +235,5 @@ end
 
 get '/logout' do
   session.clear
-  session[:notice] = "ログアウトしました"
   redirect '/'
 end
