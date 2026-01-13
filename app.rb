@@ -22,17 +22,14 @@ CATEGORIES = {
 
 def setup_db
   db = SQLite3::Database.new DB_NAME
-  # 基本テーブル作成
   db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, stars INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   db.execute "CREATE TABLE IF NOT EXISTS likes_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
   db.execute "CREATE TABLE IF NOT EXISTS stars_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
-
-  # 【お守り】既存のデータベースに stars カラムがない場合に強制追加する
+  
   begin
     db.execute "ALTER TABLE posts ADD COLUMN stars INTEGER DEFAULT 0;"
   rescue SQLite3::SQLException
-    # すでにカラムがある場合はここに来るけど、無視してOK
   end
   db.close
 end
@@ -58,7 +55,7 @@ def header_menu
 
   "
   <style>
-    :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; }
+    :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
     body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
     .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
     nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
@@ -68,8 +65,9 @@ def header_menu
     .reply-card { background: #fbfbfd; border-left: 4px solid #d2d2d7; padding: 15px; margin-top: 10px; border-radius: 0 12px 12px 0; }
     .grandchild-card { margin-left: 30px; border-left: 3px solid var(--primary); background: #f5f5f7; padding: 10px; margin-top: 5px; border-radius: 0 8px 8px 0; font-size: 0.9rem; }
     .btn-primary { background: var(--primary); color: white; border: none; padding: 10px 20px; border-radius: 980px; cursor: pointer; font-weight: 600; text-decoration: none; display: inline-block; font-size: 0.85rem; }
-    .like-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; }
+    .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; transition: all 0.2s; display: flex; align-items: center; gap: 4px; }
     .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
+    .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
     .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
     .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
     input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; }
@@ -99,23 +97,44 @@ post '/post/:id/like' do
   redirect back
 end
 
+post '/post/:id/star' do
+  redirect '/login_page' unless session[:user]
+  post_id, user = params[:id], session[:user]
+  query do |db|
+    already = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [user, post_id]).first
+    if already
+      db.execute("DELETE FROM stars_map WHERE id = ?", [already[0]])
+      db.execute("UPDATE posts SET stars = stars - 1 WHERE id = ?", [post_id])
+    else
+      db.execute("INSERT INTO stars_map (user_name, post_id) VALUES (?, ?)", [user, post_id])
+      db.execute("UPDATE posts SET stars = stars + 1 WHERE id = ?", [post_id])
+    end
+  end
+  redirect back
+end
+
 get '/' do
   word = params[:search]
   html = header_menu + "<h1>最新の知恵</h1>"
   html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{word}'><button type='submit' class='btn-primary' style='width:80px;'>検索</button></form>"
   query do |db|
-    sql = "SELECT * FROM posts WHERE (parent_id = -1 OR parent_id = '-1')"
+    sql = "SELECT * FROM posts WHERE (parent_id = -1 OR parent_id = '-1') ORDER BY id DESC"
     sql_params = []
     if word && word != ""
-      sql += " AND (title LIKE ? OR drug_name LIKE ? OR message LIKE ?)"
-      sql_params += ["%#{word}%", "%#{word}%", "%#{word}%"]
+      sql = "SELECT * FROM posts WHERE (parent_id = -1 OR parent_id = '-1') AND (title LIKE ? OR drug_name LIKE ? OR message LIKE ?) ORDER BY id DESC"
+      sql_params = ["%#{word}%", "%#{word}%", "%#{word}%"]
     end
-    sql += " ORDER BY id DESC"
+    
     db.execute(sql, sql_params).each do |row|
-      cat_name = row[10] || "その他" # カラムが増えたのでIndexを調整
+      cat_name = row[10] || "その他"
       likes_count = row[3] || 0
+      stars_count = row[4] || 0
       is_liked = session[:user] && db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
-      btn_class = is_liked ? "like-btn active" : "like-btn"
+      is_starred = session[:user] && db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
+      
+      l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
+      s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
+
       html += "
       <div class='post-card'>
         <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
@@ -123,7 +142,10 @@ get '/' do
         <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h2>
         <div style='display:flex; justify-content:space-between; align-items:center;'>
           <p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[7]}</p>
-          <form action='/post/#{row[0]}/like' method='post' style='margin:0;'><button type='submit' class='#{btn_class}'>👍 #{likes_count}</button></form>
+          <div style='display:flex; gap:8px;'>
+            <form action='/post/#{row[0]}/like' method='post' style='margin:0;'><button type='submit' class='#{l_class}'>👍 #{likes_count}</button></form>
+            <form action='/post/#{row[0]}/star' method='post' style='margin:0;'><button type='submit' class='#{s_class}'>⭐️ #{stars_count}</button></form>
+          </div>
         </div>
       </div>"
     end
@@ -144,14 +166,20 @@ get '/post/:id' do
 
     cat_name = post[10] || "その他"
     is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
-    btn_class = is_liked ? "like-btn active" : "like-btn"
+    is_starred = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
+    
+    l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
+    s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
 
     html = header_menu + "
       <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
-        <div style='display:flex; justify-content:space-between;'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
           <h1>#{post[8]}</h1>
-          <form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{btn_class}' style='font-size:1rem; padding:8px 16px;'>👍 #{post[3]}</button></form>
+          <div style='display:flex; gap:8px; margin-top:10px;'>
+            <form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{l_class}'>👍 #{post[3]}</button></form>
+            <form action='/post/#{post[0]}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ #{post[4]}</button></form>
+          </div>
         </div>
         <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0;'>#{post[5]}</div>
         <div class='reply-form'>
