@@ -72,7 +72,7 @@ def header_menu
   "
 end
 
-# --- ロジック ---
+# --- ルート設定 ---
 
 post '/post/:id/like' do
   redirect '/login_page' unless session[:user]
@@ -109,7 +109,7 @@ get '/' do
       btn_class = is_liked ? "like-btn active" : "like-btn"
       html += "
       <div class='post-card'>
-        <span class='tag' style='background:#{CATEGORIES[cat_name]};'>#{cat_name}</span>
+        <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
         <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
         <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
         <div style='display:flex; justify-content:space-between; align-items:center;'>
@@ -128,7 +128,10 @@ get '/post/:id' do
   query do |db|
     post = db.execute("SELECT * FROM posts WHERE id = ?", [params[:id]]).first
     replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [params[:id]])
-    redirect '/' unless post
+    
+    unless post
+      return header_menu + "<p>投稿が見つかりませんでした。</p><a href='/'>ホームへ戻る</a></div>"
+    end
 
     cat_name = post[9] || "その他"
     is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
@@ -149,9 +152,7 @@ get '/post/:id' do
       </div>"
 
     replies.each do |r|
-      # --- ここが2階建てのキモ：コメントへの返信を取得 ---
       grand_replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [r[0]])
-      
       html += "
       <div class='reply-card'>
         <div style='display:flex; justify-content:space-between;'>
@@ -159,7 +160,6 @@ get '/post/:id' do
           <span style='font-size:0.7rem; color:var(--secondary);'>#{r[6]}</span>
         </div>
         <p>#{r[4]}</p>
-        
         <details style='margin-top:5px; font-size:0.8rem;'>
           <summary style='cursor:pointer; color:var(--primary);'>リプライする</summary>
           <form action='/post' method='post' class='reply-form'><input type='hidden' name='parent_id' value='#{r[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{r[1]}さんへ'><textarea name='message' placeholder='#{r[1]}さんに返信...' required></textarea><button type='submit' class='btn-primary'>リプライを送る</button></form>
@@ -222,12 +222,17 @@ post '/post' do
   redirect '/login_page' unless session[:user]
   jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
   p_id = params[:parent_id].to_i
+  
+  new_post_id = nil
   query do |db|
     db.execute("INSERT INTO posts (user_name, drug_name, message, title, created_at, parent_id, category) VALUES (?, ?, ?, ?, ?, ?, ?)", 
                [session[:user], params[:drug_name], params[:message], params[:title], jst_time, p_id, params[:category]])
+    # これが確実なID取得方法！
+    new_post_id = db.last_insert_row_id
   end
-  # 2階建て表示のため、親投稿のIDを探して戻る
-  redirect "/post/#{p_id == -1 ? db.last_insert_row_id : p_id}"
+  
+  # 親投稿への返信なら親のページへ、新規なら自分の詳細ページへ
+  redirect "/post/#{p_id == -1 ? new_post_id : p_id}"
 end
 
 get '/logout' do
