@@ -7,7 +7,6 @@ require 'bcrypt'
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
 
-# セッションを強固に固定
 use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'katabami_pharmashare_2026_fixed_secret_key_long_long_long_long_64chars_over'
@@ -25,6 +24,8 @@ def setup_db
   db = SQLite3::Database.new DB_NAME
   db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
+  # 【新設】「誰が」「どの投稿に」いいねしたかを記録するテーブル
+  db.execute "CREATE TABLE IF NOT EXISTS likes_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
   db.close
 end
 setup_db
@@ -62,7 +63,7 @@ def header_menu
     .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
     .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; vertical-align: middle; }
     .like-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.9rem; color: var(--text); transition: 0.2s; }
-    .like-btn:hover { background: #f5f5f7; border-color: var(--primary); }
+    .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
     input, textarea, select { width: 100%; padding: 14px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; background: white; font-size: 1rem; }
     .search-box { margin-bottom: 30px; display: flex; gap: 10px; }
     .search-box button { width: 100px; background: var(--secondary); color: white; border: none; border-radius: 12px; cursor: pointer; font-weight: 600; }
@@ -76,12 +77,28 @@ def header_menu
   "
 end
 
-# --- メインロジック ---
+# --- ルート設定 ---
 
-# 【追加】いいねボタンの処理
+# 【進化版】いいねボタンの処理（1人1回・取り消し機能付き）
 post '/post/:id/like' do
   redirect '/login_page' unless session[:user]
-  query { |db| db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [params[:id]]) }
+  post_id = params[:id]
+  user = session[:user]
+
+  query do |db|
+    # すでにいいねしているかチェック
+    already_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [user, post_id]).first
+    
+    if already_liked
+      # 取り消し処理
+      db.execute("DELETE FROM likes_map WHERE id = ?", [already_liked[0]])
+      db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?", [post_id])
+    else
+      # 新規いいね処理
+      db.execute("INSERT INTO likes_map (user_name, post_id) VALUES (?, ?)", [user, post_id])
+      db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [post_id])
+    end
+  end
   redirect back
 end
 
@@ -100,27 +117,28 @@ get '/' do
     sql += " ORDER BY id DESC"
     posts = db.execute(sql, sql_params)
     
-    if posts.empty?
-      html += "<p style='color:var(--secondary);'>投稿が見つかりませんでした。</p>"
-    else
-      posts.each do |row|
-        cat_name = row[9] || "その他"
-        cat_color = CATEGORIES[cat_name] || "#86868b"
-        likes_count = row[3] || 0
-        html += "
-        <div class='post-card'>
-          <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
-          <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
-          <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
-          <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;'>
-            <p style='color:var(--secondary); font-size:0.85rem; margin:0;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p>
-            <form action='/post/#{row[0]}/like' method='post' style='margin:0;'>
-              <button type='submit' class='like-btn'>👍 #{likes_count}</button>
-            </form>
-          </div>
-          <a href='/post/#{row[0]}' style='color:var(--primary); font-weight:600; text-decoration:none;'>詳細をよむ →</a>
-        </div>"
-      end
+    posts.each do |row|
+      cat_name = row[9] || "その他"
+      cat_color = CATEGORIES[cat_name] || "#86868b"
+      likes_count = row[3] || 0
+      
+      # 自分がいいね済みか判定してクラスを変える
+      is_liked = session[:user] && db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
+      btn_class = is_liked ? "like-btn active" : "like-btn"
+
+      html += "
+      <div class='post-card'>
+        <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
+        <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
+        <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
+        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;'>
+          <p style='color:var(--secondary); font-size:0.85rem; margin:0;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p>
+          <form action='/post/#{row[0]}/like' method='post' style='margin:0;'>
+            <button type='submit' class='#{btn_class}'>👍 #{likes_count}</button>
+          </form>
+        </div>
+        <a href='/post/#{row[0]}' style='color:var(--primary); font-weight:600; text-decoration:none;'>詳細をよむ →</a>
+      </div>"
     end
   end
   html + "</div>"
@@ -136,39 +154,42 @@ get '/post/:id' do
     post = db.execute("SELECT * FROM posts WHERE id = ?", [params[:id]]).first
     replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [params[:id]])
     user_email = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first&.at(0)
-  end
-  redirect '/' unless post
 
-  cat_name = post[9] || "その他"
-  cat_color = CATEGORIES[cat_name] || "#86868b"
-  likes_count = post[3] || 0
+    redirect '/' unless post
 
-  html = header_menu + "
-    <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
-    <div class='post-card' style='margin-top:20px;'>
-      <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
-        <div>
-          <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
-          <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{post[2]}</span>
-          <h1>#{post[7]}</h1>
+    cat_name = post[9] || "その他"
+    cat_color = CATEGORIES[cat_name] || "#86868b"
+    likes_count = post[3] || 0
+    is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
+    btn_class = is_liked ? "like-btn active" : "like-btn"
+
+    html = header_menu + "
+      <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
+      <div class='post-card' style='margin-top:20px;'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
+          <div>
+            <span class='tag' style='background:#{cat_color};'>#{cat_name}</span>
+            <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{post[2]}</span>
+            <h1>#{post[7]}</h1>
+          </div>
+          <form action='/post/#{post[0]}/like' method='post'>
+            <button type='submit' class='#{btn_class}' style='font-size:1.1rem; padding:8px 16px;'>👍 #{likes_count}</button>
+          </form>
         </div>
-        <form action='/post/#{post[0]}/like' method='post'>
-          <button type='submit' class='like-btn' style='font-size:1.1rem; padding:8px 16px;'>👍 #{likes_count}</button>
-        </form>
-      </div>
-      <p style='color:var(--secondary); font-size:0.85rem;'>投稿者: #{post[1]} | 日時: #{post[6]}</p>
-      <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0; font-size:1.1rem;'>#{post[4]}</div>
-    </div>"
+        <p style='color:var(--secondary); font-size:0.85rem;'>投稿者: #{post[1]} | 日時: #{post[6]}</p>
+        <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0; font-size:1.1rem;'>#{post[4]}</div>
+      </div>"
 
-  html += "<h3>💬 返信 (#{replies.size})</h3>"
-  replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><div>👨‍⚕️ #{r[1]}</div><p>#{r[4]}</p></div>" }
+    html += "<h3>💬 返信 (#{replies.size})</h3>"
+    replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><div>👨‍⚕️ #{r[1]}</div><p>#{r[4]}</p></div>" }
 
-  if user_email && user_email != ""
-    html += "<div class='post-card'><h4>返信を書く</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' required></textarea><button type='submit' class='btn-primary'>返信を送る</button></form></div>"
-  else
-    html += "<div class='lock-banner'><h4>✉️ 返信にはメアド登録が必要です</h4><a href='/profile' class='btn-primary'>設定画面で登録</a></div>"
+    if user_email && user_email != ""
+      html += "<div class='post-card'><h4>返信を書く</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' required></textarea><button type='submit' class='btn-primary'>返信を送る</button></form></div>"
+    else
+      html += "<div class='lock-banner'><h4>✉️ 返信にはメアド登録が必要です</h4><a href='/profile' class='btn-primary'>設定画面で登録</a></div>"
+    end
+    html + "</div>"
   end
-  html + "</div>"
 end
 
 get '/post_new' do
