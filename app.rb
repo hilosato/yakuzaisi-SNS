@@ -22,9 +22,18 @@ CATEGORIES = {
 
 def setup_db
   db = SQLite3::Database.new DB_NAME
-  db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
+  # 基本テーブル作成
+  db.execute "CREATE TABLE IF NOT EXISTS posts (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, stars INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   db.execute "CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   db.execute "CREATE TABLE IF NOT EXISTS likes_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
+  db.execute "CREATE TABLE IF NOT EXISTS stars_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
+
+  # 【お守り】既存のデータベースに stars カラムがない場合に強制追加する
+  begin
+    db.execute "ALTER TABLE posts ADD COLUMN stars INTEGER DEFAULT 0;"
+  rescue SQLite3::SQLException
+    # すでにカラムがある場合はここに来るけど、無視してOK
+  end
   db.close
 end
 setup_db
@@ -103,7 +112,7 @@ get '/' do
     end
     sql += " ORDER BY id DESC"
     db.execute(sql, sql_params).each do |row|
-      cat_name = row[9] || "その他"
+      cat_name = row[10] || "その他" # カラムが増えたのでIndexを調整
       likes_count = row[3] || 0
       is_liked = session[:user] && db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
       btn_class = is_liked ? "like-btn active" : "like-btn"
@@ -111,9 +120,9 @@ get '/' do
       <div class='post-card'>
         <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
         <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
-        <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[7]}</a></h2>
+        <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h2>
         <div style='display:flex; justify-content:space-between; align-items:center;'>
-          <p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[6]}</p>
+          <p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[7]}</p>
           <form action='/post/#{row[0]}/like' method='post' style='margin:0;'><button type='submit' class='#{btn_class}'>👍 #{likes_count}</button></form>
         </div>
       </div>"
@@ -133,7 +142,7 @@ get '/post/:id' do
       return header_menu + "<p>投稿が見つかりませんでした。</p><a href='/'>ホームへ戻る</a></div>"
     end
 
-    cat_name = post[9] || "その他"
+    cat_name = post[10] || "その他"
     is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
     btn_class = is_liked ? "like-btn active" : "like-btn"
 
@@ -141,13 +150,13 @@ get '/post/:id' do
       <a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
         <div style='display:flex; justify-content:space-between;'>
-          <h1>#{post[7]}</h1>
+          <h1>#{post[8]}</h1>
           <form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{btn_class}' style='font-size:1rem; padding:8px 16px;'>👍 #{post[3]}</button></form>
         </div>
-        <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0;'>#{post[4]}</div>
+        <div style='line-height:1.8; white-space: pre-wrap; margin:20px 0;'>#{post[5]}</div>
         <div class='reply-form'>
           <h4>💬 この投稿にコメント</h4>
-          <form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[7]}'><textarea name='message' placeholder='コメントを入力...' required></textarea><button type='submit' class='btn-primary'>コメントを送る</button></form>
+          <form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[8]}'><textarea name='message' placeholder='コメントを入力...' required></textarea><button type='submit' class='btn-primary'>コメントを送る</button></form>
         </div>
       </div>"
 
@@ -157,16 +166,16 @@ get '/post/:id' do
       <div class='reply-card'>
         <div style='display:flex; justify-content:space-between;'>
           <strong>👨‍⚕️ #{r[1]}</strong>
-          <span style='font-size:0.7rem; color:var(--secondary);'>#{r[6]}</span>
+          <span style='font-size:0.7rem; color:var(--secondary);'>#{r[7]}</span>
         </div>
-        <p>#{r[4]}</p>
+        <p>#{r[5]}</p>
         <details style='margin-top:5px; font-size:0.8rem;'>
           <summary style='cursor:pointer; color:var(--primary);'>リプライする</summary>
           <form action='/post' method='post' class='reply-form'><input type='hidden' name='parent_id' value='#{r[0]}'><input type='hidden' name='category' value='#{cat_name}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{r[1]}さんへ'><textarea name='message' placeholder='#{r[1]}さんに返信...' required></textarea><button type='submit' class='btn-primary'>リプライを送る</button></form>
         </details>"
 
       grand_replies.each do |gr|
-        html += "<div class='grandchild-card'><strong>↪️ #{gr[1]}</strong>: #{gr[4]} <span style='font-size:0.65rem; color:var(--secondary); float:right;'>#{gr[6]}</span></div>"
+        html += "<div class='grandchild-card'><strong>↪️ #{gr[1]}</strong>: #{gr[5]} <span style='font-size:0.65rem; color:var(--secondary); float:right;'>#{gr[7]}</span></div>"
       end
       html += "</div>"
     end
@@ -227,11 +236,8 @@ post '/post' do
   query do |db|
     db.execute("INSERT INTO posts (user_name, drug_name, message, title, created_at, parent_id, category) VALUES (?, ?, ?, ?, ?, ?, ?)", 
                [session[:user], params[:drug_name], params[:message], params[:title], jst_time, p_id, params[:category]])
-    # これが確実なID取得方法！
     new_post_id = db.last_insert_row_id
   end
-  
-  # 親投稿への返信なら親のページへ、新規なら自分の詳細ページへ
   redirect "/post/#{p_id == -1 ? new_post_id : p_id}"
 end
 
