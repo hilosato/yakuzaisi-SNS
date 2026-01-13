@@ -69,7 +69,7 @@ def header_menu
     .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
     .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
     .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; width: 100%; }
+    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; }
     input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; }
   </style>
   <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
@@ -78,7 +78,7 @@ def header_menu
   "
 end
 
-# --- ルート（基本機能） ---
+# --- ルート ---
 
 get '/' do
   word = params[:search]
@@ -115,7 +115,73 @@ get '/' do
   html + "</div>"
 end
 
-# --- マイページ TOP ---
+# 詳細画面（ここでリプライのリプライを可能に修正）
+get '/post/:id' do
+  redirect '/login_page' unless session[:user]
+  query do |db|
+    post = db.execute("SELECT * FROM posts WHERE id = ?", [params[:id]]).first
+    return header_menu + "<p>投稿なし</p></div>" unless post
+    replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [params[:id]])
+    is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
+    is_starred = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
+    l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
+    s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
+    
+    html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
+      <div class='post-card' style='margin-top:20px;'>
+        <div style='display:flex; justify-content:space-between;'><h1>#{post[8]}</h1>
+        <div style='display:flex; gap:8px;'><form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{l_class}'>👍 #{post[3]}</button></form>
+        <form action='/post/#{post[0]}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ #{post[4]}</button></form></div></div>
+        <div style='white-space: pre-wrap; margin:20px 0;'>#{post[5]}</div>
+        <div class='reply-form'><h4>💬 コメント・返信を送る</h4><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{post[10]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[8]}'><textarea name='message' required></textarea><button type='submit' class='btn-primary' style='width:auto;'>送信</button></form></div></div>"
+    
+    replies.each do |r| 
+      html += "
+      <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
+        <strong>#{r[1]}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r[7]}</span>
+        <p>#{r[5]}</p>
+        <a href='/post/#{r[0]}' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>↩︎ このコメントに返信する</a>
+      </div>"
+    end
+    html + "</div>"
+  end
+end
+
+# 認証（メアド必須化のバリデーション追加）
+post '/auth' do
+  user_name, password, email = params[:user_name], params[:password], params[:email]
+  
+  query do |db|
+    user = db.execute("SELECT * FROM users WHERE user_name = ?", [user_name]).first
+    if user
+      if BCrypt::Password.new(user[2]) == password
+        session[:user] = user_name
+        redirect '/'
+      else
+        session[:notice] = "パスワード間違い"
+        redirect '/login_page'
+      end
+    else
+      # 新規登録時にメアドがない場合はエラー
+      if email.nil? || email.strip == ""
+        session[:notice] = "新規登録にはメールアドレスが必要です"
+        redirect '/login_page'
+      else
+        hash_pass = BCrypt::Password.create(password)
+        db.execute("INSERT INTO users (user_name, password_digest, email) VALUES (?, ?, ?)", [user_name, hash_pass, email])
+        session[:user] = user_name
+        redirect '/'
+      end
+    end
+  end
+end
+
+get '/login_page' do
+  header_menu + "<div class='post-card'><h2>🔑 ログイン / 新規登録</h2><p style='font-size:0.8rem; color:var(--secondary);'>※新規登録の方はメールアドレスも入力してください</p><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パスワード' required><input type='email' name='email' placeholder='メールアドレス（登録時必須）'><button type='submit' class='btn-primary' style='width:100%; margin-top:10px;'>ログイン・登録</button></form></div></div>"
+end
+
+# --- 他のルート（profile, my_posts, my_stars, logout等）は昨日のままでOK ---
+
 get '/profile' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<h1>マイページ</h1>"
@@ -123,7 +189,6 @@ get '/profile' do
     post_count = db.execute("SELECT COUNT(*) FROM posts WHERE user_name = ? AND parent_id = -1", [session[:user]]).first[0]
     total_likes = db.execute("SELECT SUM(likes) FROM posts WHERE user_name = ?", [session[:user]]).first[0] || 0
     total_stars = db.execute("SELECT SUM(stars) FROM posts WHERE user_name = ?", [session[:user]]).first[0] || 0
-    
     html += "
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
@@ -144,43 +209,37 @@ get '/profile' do
   html + "</div>"
 end
 
-# --- 自分の投稿一覧ページ ---
 get '/my_posts' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<a href='/profile' style='text-decoration:none; color:var(--primary); font-weight:600;'>← マイページへ</a><h1>📝 自分の投稿一覧</h1>"
   query do |db|
     db.execute("SELECT * FROM posts WHERE user_name = ? AND parent_id = -1 ORDER BY id DESC", [session[:user]]).each do |row|
       cat_name = row[10] || "その他"
-      html += "
-      <div class='post-card'>
-        <span class='tag' style='background:#{CATEGORIES[cat_name]};'>#{cat_name}</span>
-        <h3 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3>
-        <p style='color:var(--secondary); font-size:0.8rem;'>📅 #{row[7]} | 👍 #{row[3]} ⭐️ #{row[4]}</p>
-      </div>"
+      html += "<div class='post-card'><span class='tag' style='background:#{CATEGORIES[cat_name]};'>#{cat_name}</span><h3 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3><p style='color:var(--secondary); font-size:0.8rem;'>📅 #{row[7]} | 👍 #{row[3]} ⭐️ #{row[4]}</p></div>"
     end
   end
   html + "</div>"
 end
 
-# --- お気に入り一覧ページ ---
 get '/my_stars' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<a href='/profile' style='text-decoration:none; color:var(--primary); font-weight:600;'>← マイページへ</a><h1>⭐️ お気に入り一覧</h1>"
   query do |db|
     db.execute("SELECT p.* FROM posts p JOIN stars_map s ON p.id = s.post_id WHERE s.user_name = ? ORDER BY s.id DESC", [session[:user]]).each do |row|
       cat_name = row[10] || "その他"
-      html += "
-      <div class='post-card'>
-        <span class='tag' style='background:#{CATEGORIES[cat_name]};'>#{cat_name}</span>
-        <h3 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3>
-        <p style='color:var(--secondary); font-size:0.8rem;'>投稿者: #{row[1]} | 📅 #{row[7]} | 👍 #{row[3]} ⭐️ #{row[4]}</p>
-      </div>"
+      html += "<div class='post-card'><span class='tag' style='background:#{CATEGORIES[cat_name]};'>#{cat_name}</span><h3 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3><p style='color:var(--secondary); font-size:0.8rem;'>投稿者: #{row[1]} | 📅 #{row[7]} | 👍 #{row[3]} ⭐️ #{row[4]}</p></div>"
     end
   end
   html + "</div>"
 end
 
-# --- 以下、前回のルート（like, star, post, authなど）をそのまま継続 ---
+get '/post_new' do
+  redirect '/login_page' unless session[:user]
+  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post'>"
+  html += "<label>カテゴリ</label><select name='category'>"
+  CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
+  html += "</select><input type='text' name='title' placeholder='タイトル' required><input type='text' name='drug_name' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
+end
 
 post '/post/:id/like' do
   redirect '/login_page' unless session[:user]
@@ -212,55 +271,6 @@ post '/post/:id/star' do
     end
   end
   redirect back
-end
-
-get '/post_new' do
-  redirect '/login_page' unless session[:user]
-  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post'>"
-  html += "<label>カテゴリ</label><select name='category'>"
-  CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
-  html += "</select><input type='text' name='title' placeholder='タイトル' required><input type='text' name='drug_name' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
-end
-
-get '/post/:id' do
-  redirect '/login_page' unless session[:user]
-  query do |db|
-    post = db.execute("SELECT * FROM posts WHERE id = ?", [params[:id]]).first
-    return header_menu + "<p>なし</p></div>" unless post
-    replies = db.execute("SELECT * FROM posts WHERE parent_id = ? ORDER BY id ASC", [params[:id]])
-    is_liked = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
-    is_starred = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], post[0]]).first
-    l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
-    s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
-    html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a><div class='post-card' style='margin-top:20px;'><h1>#{post[8]}</h1><div style='display:flex; gap:8px;'><form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{l_class}'>👍 #{post[3]}</button></form><form action='/post/#{post[0]}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ #{post[4]}</button></form></div><div style='white-space: pre-wrap; margin:20px 0;'>#{post[5]}</div><hr><form action='/post' method='post'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{post[10]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[8]}'><textarea name='message' required></textarea><button type='submit' class='btn-primary' style='width:auto;'>コメント</button></form></div>"
-    replies.each { |r| html += "<div class='post-card' style='margin-left:20px; background:#fbfbfd;'><strong>#{r[1]}</strong><p>#{r[5]}</p></div>" }
-    html + "</div>"
-  end
-end
-
-post '/auth' do
-  user_name, password = params[:user_name], params[:password]
-  query do |db|
-    user = db.execute("SELECT * FROM users WHERE user_name = ?", [user_name]).first
-    if user
-      if BCrypt::Password.new(user[2]) == password
-        session[:user] = user_name
-        redirect '/'
-      else
-        session[:notice] = "パス間違い"
-        redirect '/login_page'
-      end
-    else
-      hash_pass = BCrypt::Password.create(password)
-      db.execute("INSERT INTO users (user_name, password_digest) VALUES (?, ?)", [user_name, hash_pass])
-      session[:user] = user_name
-      redirect '/'
-    end
-  end
-end
-
-get '/login_page' do
-  header_menu + "<div class='post-card'><h2>ログイン・登録</h2><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パス' required><button type='submit' class='btn-primary'>Go</button></form></div></div>"
 end
 
 post '/post' do
