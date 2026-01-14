@@ -266,7 +266,47 @@ post '/auth' do
 end
 
 get '/login_page' do
-  header_menu + "<div class='post-card'><h2>🔑 ログイン / 新規登録</h2><p style='font-size:0.8rem; color:var(--secondary);'>※見るだけなら名前とパスだけでOK。投稿したい方はメアドも登録してください。</p><form action='/auth' method='post'><input type='text' name='user_name' placeholder='名前' required><input type='password' name='password' placeholder='パス' required><input type='email' name='email' placeholder='メアド（任意）'><button type='submit' class='btn-primary' style='width:100%; margin-top:10px;'>ログイン・登録</button></form></div></div>"
+  header_menu + "
+  <div class='post-card'>
+    <h2>🔑 ログイン / 新規登録</h2>
+    <p style='font-size:0.8rem; color:var(--secondary); margin-bottom:20px;'>
+      既にアカウントがある方は、名前とパスワードでログインできます。
+    </p>
+
+    <form action='/auth' method='post' id='authForm'>
+      <label style='font-size:0.8rem; font-weight:bold;'>必須項目</label>
+      <input type='text' name='user_name' placeholder='名前（ニックネーム）' required>
+      <input type='password' name='password' placeholder='パスワード' required>
+      
+      <div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'>
+        <button type='submit' name='mode' value='guest' class='btn-primary' style='background:var(--secondary); width:100%;'>
+          仮登録して閲覧する（閲覧のみ）
+        </button>
+      </div>
+
+      <div style='margin-top:20px; border-top:1px solid #d2d2d7; pt:20px;'>
+        <label style='font-size:0.8rem; font-weight:bold; display:block; margin-top:10px;'>🌟 投稿・コメントもしたい方（本登録）</label>
+        <p style='font-size:0.75rem; color:var(--secondary);'>メールアドレスを登録すると、知恵の共有ができるようになります。</p>
+        <input type='email' name='email' id='emailField' placeholder='メールアドレス'>
+        <button type='submit' name='mode' value='full' class='btn-primary' style='width:100%; margin-top:10px;'>
+          本登録する（投稿機能あり）
+        </button>
+      </div>
+    </form>
+  </div>
+  
+  <script>
+    // 本登録ボタンを押した時だけ、メアド入力をチェックする簡単なスクリプト
+    document.getElementById('authForm').onsubmit = function(e) {
+      const mode = document.activeElement.value;
+      const email = document.getElementById('emailField').value;
+      if (mode === 'full' && email.trim() === '') {
+        alert('本登録にはメールアドレスが必要です！');
+        return false;
+      }
+    };
+  </script>
+  "
 end
 
 # --- その他一覧ページ ---
