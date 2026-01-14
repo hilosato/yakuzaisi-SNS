@@ -291,6 +291,37 @@ get '/post_new' do
   html += "</select><input type='text' name='title' placeholder='タイトル' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
 end
 
-post '/post/:id/like' { redirect '/login_page' unless session[:user]; query { |db| already = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], params[:id]]).first; if already; db.execute("DELETE FROM likes_map WHERE id = ?", [already[0]]); db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?", [params[:id]]); else; db.execute("INSERT INTO likes_map (user_name, post_id) VALUES (?, ?)", [session[:user], params[:id]]); db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [params[:id]]); end }; redirect back }
-post '/post/:id/star' { redirect '/login_page' unless session[:user]; query { |db| already = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], params[:id]]).first; if already; db.execute("DELETE FROM stars_map WHERE id = ?", [already[0]]); db.execute("UPDATE posts SET stars = stars - 1 WHERE id = ?", [params[:id]]); else; db.execute("INSERT INTO stars_map (user_name, post_id) VALUES (?, ?)", [session[:user], params[:id]]); db.execute("UPDATE posts SET stars = stars + 1 WHERE id = ?", [params[:id]]); end }; redirect back }
-get '/logout' { session.clear; redirect '/' }
+post '/post/:id/like' do
+  redirect '/login_page' unless session[:user]
+  query do |db|
+    already = db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], params[:id]]).first
+    if already
+      db.execute("DELETE FROM likes_map WHERE id = ?", [already[0]])
+      db.execute("UPDATE posts SET likes = likes - 1 WHERE id = ?", [params[:id]])
+    else
+      db.execute("INSERT INTO likes_map (user_name, post_id) VALUES (?, ?)", [session[:user], params[:id]])
+      db.execute("UPDATE posts SET likes = likes + 1 WHERE id = ?", [params[:id]])
+    end
+  end
+  redirect back
+end
+
+post '/post/:id/star' do
+  redirect '/login_page' unless session[:user]
+  query do |db|
+    already = db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], params[:id]]).first
+    if already
+      db.execute("DELETE FROM stars_map WHERE id = ?", [already[0]])
+      db.execute("UPDATE posts SET stars = stars - 1 WHERE id = ?", [params[:id]])
+    else
+      db.execute("INSERT INTO stars_map (user_name, post_id) VALUES (?, ?)", [session[:user], params[:id]])
+      db.execute("UPDATE posts SET stars = stars + 1 WHERE id = ?", [params[:id]])
+    end
+  end
+  redirect back
+end
+
+get '/logout' do
+  session.clear
+  redirect '/'
+end
