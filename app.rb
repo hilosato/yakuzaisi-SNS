@@ -265,7 +265,7 @@ post '/auth' do
   end
 end
 
-gget '/login_page' do
+get '/login_page' do
   header_menu + "
   <div class='post-card'>
     <h2>🔑 ログイン / 新規登録</h2>
