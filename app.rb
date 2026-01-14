@@ -1,5 +1,5 @@
 require 'sinatra'
-require 'pg' # sqlite3からpgに変更
+require 'pg'
 require 'time'
 require 'bcrypt'
 require 'uri'
@@ -12,13 +12,9 @@ use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'katabami_pharmashare_2026_fixed_secret_key_long_long_long_long_64chars_over'
 
-# --- データベース接続設定 (PostgreSQL対応) ---
+# --- データベース接続設定 ---
 def db_connection
-  # Renderに設定した DATABASE_URL を読み込む
   db_url = ENV['DATABASE_URL']
-  
-  # もしURLがない場合（ローカルなど）は、エラーにならないようダミーを入れるか、
-  # ローカルのPostgresに繋ぐ設定にする（今はRender優先の設定）
   uri = URI.parse(db_url || 'postgres://localhost/pharmashare')
   
   PG.connect(
@@ -31,10 +27,9 @@ def db_connection
   )
 end
 
-# テーブル作成（PostgreSQLの文法に調整済み）
+# テーブル作成
 def setup_db
   conn = db_connection
-  # IDの自動増加を SERIAL に変更
   conn.exec "CREATE TABLE IF NOT EXISTS posts (id SERIAL PRIMARY KEY, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, stars INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS likes_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
@@ -45,7 +40,6 @@ rescue => e
 end
 setup_db
 
-# ヘルパー：クエリ実行（使い終わったら自動で接続を閉じるプロ仕様）
 def query(sql, params = [])
   conn = db_connection
   res = conn.exec_params(sql, params)
@@ -54,14 +48,15 @@ ensure
   conn.close if conn
 end
 
+# 新しいカテゴリ設定
 CATEGORIES = {
-  "インシデントレポート" => "#ff3b30",      # 注意を引く赤
-  "疑義紹介、処方介入事例" => "#0071e3", # 知的な青
-  "他職種連携事例" => "#5856d6",         # 協力・信頼の紫
-  "往診同行" => "#32d74b",              # 外をイメージする緑
-  "保険関連" => "#ff9f0a",              # 重要事項のオレンジ
-  "部下後輩教育" => "#af52de",          # 成長を促す明るい紫
-  "その他独り言" => "#8e8e93"           # 落ち着いたグレー
+  "インシデントレポート" => "#ff3b30",
+  "疑義紹介、処方介入事例" => "#0071e3",
+  "他職種連携事例" => "#5856d6",
+  "往診同行" => "#32d74b",
+  "保険関連" => "#ff9f0a",
+  "部下後輩教育" => "#af52de",
+  "その他独り言" => "#8e8e93"
 }
 
 # --- デザイン共通パーツ ---
@@ -108,7 +103,6 @@ get '/' do
   sql = "SELECT * FROM posts WHERE (parent_id = -1) "
   sql_params = []
   if word && word != ""
-    # PostgreSQLでは $1, $2 という記法を使う
     sql += "AND (title LIKE $1 OR drug_name LIKE $1 OR message LIKE $1) "
     sql_params = ["%#{word}%"]
   end
@@ -116,12 +110,12 @@ get '/' do
 
   query(sql, sql_params) do |res|
     res.each do |row|
-      cat_name = row['category'] || "その他"
+      cat_name = row['category'] || "その他独り言"
       html += "
       <div class='post-card' style='padding: 20px;'>
         <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
           <div style='flex: 1;'>
-            <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
+            <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
             <span style='color:var(--secondary); font-size:0.75rem;'>💊 #{row['drug_name']}</span>
             <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
             <p style='color:var(--secondary); font-size:0.8rem; margin:0;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at'].split(' ')[0]}</p>
@@ -144,7 +138,6 @@ get '/post/:id' do
     post = res.first
     return header_menu + "<p>投稿が見つかりませんでした。</p></div>" unless post
     
-    # 返信一覧を取得
     replies = []
     query("SELECT * FROM posts WHERE parent_id = $1 ORDER BY id ASC", [params[:id]]) { |r_res| replies = r_res.to_a }
     
@@ -158,7 +151,7 @@ get '/post/:id' do
     
     html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
-        <span class='tag' style='background:#{CATEGORIES[post['category']] || '#86868b'};'>#{post['category']}</span>
+        <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
         <h1 style='margin:10px 0;'>#{post['title']}</h1>
         <p style='color:var(--secondary); font-size:0.9rem;'>薬剤名: #{post['drug_name']} | 投稿者: #{post['user_name']}</p>
         <hr style='border:0; border-top:1px solid #eee; margin:20px 0;'>"
@@ -170,8 +163,17 @@ get '/post/:id' do
         <div style='display:flex; gap:10px; margin-top:30px;'>
           <form action='/post/#{post['id']}/like' method='post'><button type='submit' class='#{l_class}'>👍 役に立った！ (#{post['likes']})</button></form>
           <form action='/post/#{post['id']}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post['stars']})</button></form>
-        </div>
+        </div>"
         
+    # --- 削除ボタン追加部分 ---
+    if post['user_name'] == session[:user]
+      html += "
+      <form action='/post/#{post['id']}/delete' method='post' style='margin-top:20px;' onsubmit='return confirm(\"本当に削除しますか？\");'>
+        <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.8rem; font-weight:600; padding:0;'>🗑️ この投稿を削除する</button>
+      </form>"
+    end
+
+    html += "
         <div class='reply-form' style='margin-top:40px; padding-top:20px; border-top:1px solid #eee;'>
           <h4>💬 コメント・返信</h4>
           <form action='/post' method='post' enctype='multipart/form-data'>
@@ -189,7 +191,19 @@ get '/post/:id' do
     replies.each do |r| 
       html += "
       <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
-        <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r['created_at']}</span>
+        <div style='display:flex; justify-content:space-between;'>
+          <div>
+            <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r['created_at']}</span>
+          </div>"
+      # 返信にも削除ボタン
+      if r['user_name'] == session[:user]
+        html += "
+        <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
+          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.7rem;'>削除</button>
+        </form>"
+      end
+      html += "
+        </div>
         <p>#{r['message']}</p>"
       html += "<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'> " if r['image_path'] && r['image_path'] != ""
       html += "</div>"
@@ -228,45 +242,37 @@ post '/post' do
   redirect p_id == -1 ? '/' : "/post/#{p_id}"
 end
 
+# --- 削除機能 ---
+post '/post/:id/delete' do
+  redirect '/login_page' unless session[:user]
+  query("SELECT user_name, parent_id FROM posts WHERE id = $1", [params[:id]]) do |res|
+    post = res.first
+    if post && post['user_name'] == session[:user]
+      parent_id = post['parent_id'].to_i
+      query("DELETE FROM likes_map WHERE post_id = $1", [params[:id]])
+      query("DELETE FROM stars_map WHERE post_id = $1", [params[:id]])
+      query("DELETE FROM posts WHERE id = $1", [params[:id]])
+      session[:notice] = "削除しました。"
+      redirect parent_id == -1 ? '/' : "/post/#{parent_id}"
+    else
+      session[:notice] = "権限がありません。"
+      redirect '/'
+    end
+  end
+end
+
 # --- マイページ ---
 get '/profile' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<h1>マイページ</h1>"
-  
-  current_email = ""
-  post_count = 0
-  total_likes = 0
-  total_stars = 0
-  
+  current_email, post_count, total_likes, total_stars = "", 0, 0, 0
   query("SELECT email FROM users WHERE user_name = $1", [session[:user]]) { |res| current_email = res.first['email'] if res.any? }
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
   query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [session[:user]]) do |res| 
     total_likes = res.first['l'] || 0
     total_stars = res.first['s'] || 0
   end
-  
-  html += "
-  <div class='post-card'>
-    <div style='text-align:center; margin-bottom:20px;'>
-      <div style='width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
-      <h3 style='margin:0;'>#{session[:user]} 先生</h3>
-    </div>
-    <div style='display:flex; gap:10px;'>
-      <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
-      <div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div>
-      <div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div>
-    </div>
-  </div>
-  
-  <div class='post-card'>
-    <h4>👤 プロフィール編集</h4>
-    <form action='/update_profile' method='post'>
-      <label style='font-size:0.8rem;'>メールアドレス（投稿に必須）</label>
-      <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
-      <button type='submit' class='btn-primary' style='width:auto;'>保存する</button>
-    </form>
-  </div>"
-  html + "</div>"
+  html += "<div class='post-card'><div style='text-align:center; margin-bottom:20px;'><div style='width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div><h3 style='margin:0;'>#{session[:user]} 先生</h3></div><div style='display:flex; gap:10px;'><div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div><div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div><div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div></div></div><div class='post-card'><h4>👤 プロフィール編集</h4><form action='/update_profile' method='post'><label style='font-size:0.8rem;'>メールアドレス（投稿に必須）</label><input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required><button type='submit' class='btn-primary' style='width:auto;'>保存する</button></form></div></div>"
 end
 
 post '/update_profile' do
@@ -279,10 +285,8 @@ end
 # --- 認証 ---
 post '/auth' do
   user_name, password, email, mode = params[:user_name], params[:password], params[:email], params[:mode]
-  
   user = nil
   query("SELECT * FROM users WHERE user_name = $1", [user_name]) { |res| user = res.first if res.any? }
-
   if user
     if BCrypt::Password.new(user['password_digest']) == password
       session[:user] = user_name
@@ -301,33 +305,7 @@ post '/auth' do
 end
 
 get '/login_page' do
-  header_menu + "
-  <div class='post-card'>
-    <h2>🔑 ログイン / 新規登録</h2>
-    <form action='/auth' method='post' id='authForm'>
-      <input type='text' name='user_name' id='userName' placeholder='名前' required>
-      <input type='password' name='password' id='password' placeholder='パスワード' required>
-      <div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'>
-        <button type='button' onclick='submitAs(\"guest\")' class='btn-primary' style='background:var(--secondary); width:100%;'>仮登録して閲覧する</button>
-      </div>
-      <div style='margin-top:20px; border-top:1px solid #d2d2d7; padding-top:20px;'>
-        <label style='font-size:0.8rem; font-weight:bold;'>🌟 本登録して投稿する</label>
-        <input type='email' name='email' id='emailField' placeholder='メールアドレス'>
-        <button type='button' onclick='submitAs(\"full\")' class='btn-primary' style='width:100%; margin-top:10px;'>本登録する</button>
-      </div>
-      <input type='hidden' name='mode' id='submitMode'>
-    </form>
-  </div>
-  <script>
-    document.getElementById('authForm').onkeypress = function(e) { if (e.key === 'Enter') { e.preventDefault(); return false; } };
-    function submitAs(mode) {
-      const form = document.getElementById('authForm');
-      if (!document.getElementById('userName').value || !document.getElementById('password').value) { form.reportValidity(); return; }
-      if (mode === 'full' && document.getElementById('emailField').value.trim() === '') { alert('本登録にはメアドが必要です'); return; }
-      document.getElementById('submitMode').value = mode;
-      form.submit();
-    }
-  </script>"
+  header_menu + "<div class='post-card'><h2>🔑 ログイン / 新規登録</h2><form action='/auth' method='post' id='authForm'><input type='text' name='user_name' id='userName' placeholder='名前' required><input type='password' name='password' id='password' placeholder='パスワード' required><div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'><button type='button' onclick='submitAs(\"guest\")' class='btn-primary' style='background:var(--secondary); width:100%;'>仮登録して閲覧する</button></div><div style='margin-top:20px; border-top:1px solid #d2d2d7; padding-top:20px;'><label style='font-size:0.8rem; font-weight:bold;'>🌟 本登録して投稿する</label><input type='email' name='email' id='emailField' placeholder='メールアドレス'><button type='button' onclick='submitAs(\"full\")' class='btn-primary' style='width:100%; margin-top:10px;'>本登録する</button></div><input type='hidden' name='mode' id='submitMode'></form></div><script>document.getElementById('authForm').onkeypress = function(e) { if (e.key === 'Enter') { e.preventDefault(); return false; } };function submitAs(mode) {const form = document.getElementById('authForm');if (!document.getElementById('userName').value || !document.getElementById('password').value) { form.reportValidity(); return; }if (mode === 'full' && document.getElementById('emailField').value.trim() === '') { alert('本登録にはメアドが必要です'); return; }document.getElementById('submitMode').value = mode;form.submit();}</script>"
 end
 
 # --- いいね・スター機能 ---
@@ -336,7 +314,6 @@ post '/post/:id/like' do
   post_id = params[:id].to_i
   already = false
   query("SELECT id FROM likes_map WHERE user_name = $1 AND post_id = $2", [session[:user], post_id]) { |r| already = true if r.any? }
-  
   if already
     query("DELETE FROM likes_map WHERE user_name = $1 AND post_id = $2", [session[:user], post_id])
     query("UPDATE posts SET likes = likes - 1 WHERE id = $1", [post_id])
@@ -352,7 +329,6 @@ post '/post/:id/star' do
   post_id = params[:id].to_i
   already = false
   query("SELECT id FROM stars_map WHERE user_name = $1 AND post_id = $2", [session[:user], post_id]) { |r| already = true if r.any? }
-  
   if already
     query("DELETE FROM stars_map WHERE user_name = $1 AND post_id = $2", [session[:user], post_id])
     query("UPDATE posts SET stars = stars - 1 WHERE id = $1", [post_id])
