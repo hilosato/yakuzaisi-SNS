@@ -7,6 +7,13 @@ GEM
     mustermann (3.0.4)
       ruby2_keywords (~> 0.0.1)
     nio4r (2.7.5)
+    pg (1.6.3)
+    pg (1.6.3-aarch64-linux)
+    pg (1.6.3-aarch64-linux-musl)
+    pg (1.6.3-arm64-darwin)
+    pg (1.6.3-x86_64-darwin)
+    pg (1.6.3-x86_64-linux)
+    pg (1.6.3-x86_64-linux-musl)
     puma (7.1.0)
       nio4r (~> 2.0)
     rack (3.2.4)
@@ -53,6 +60,7 @@ PLATFORMS
 
 DEPENDENCIES
   bcrypt
+  pg
   puma (~> 7.1)
   rackup (~> 2.3)
   sinatra
