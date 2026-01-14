@@ -265,7 +265,7 @@ post '/auth' do
   end
 end
 
-get '/login_page' do
+gget '/login_page' do
   header_menu + "
   <div class='post-card'>
     <h2>🔑 ログイン / 新規登録</h2>
@@ -275,36 +275,58 @@ get '/login_page' do
 
     <form action='/auth' method='post' id='authForm'>
       <label style='font-size:0.8rem; font-weight:bold;'>必須項目</label>
-      <input type='text' name='user_name' placeholder='名前（ニックネーム）' required>
-      <input type='password' name='password' placeholder='パスワード' required>
+      <input type='text' name='user_name' id='userName' placeholder='名前（ニックネーム）' required>
+      <input type='password' name='password' id='password' placeholder='パスワード' required>
       
       <div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'>
-        <button type='submit' name='mode' value='guest' class='btn-primary' style='background:var(--secondary); width:100%;'>
+        <p style='font-size:0.75rem; color:var(--secondary); margin-bottom:10px;'>まずは見てみたい方はこちら</p>
+        <button type='button' onclick='submitAs(\"guest\")' class='btn-primary' style='background:var(--secondary); width:100%;'>
           仮登録して閲覧する（閲覧のみ）
         </button>
       </div>
 
-      <div style='margin-top:20px; border-top:1px solid #d2d2d7; pt:20px;'>
-        <label style='font-size:0.8rem; font-weight:bold; display:block; margin-top:10px;'>🌟 投稿・コメントもしたい方（本登録）</label>
+      <div style='margin-top:20px; border-top:1px solid #d2d2d7; padding-top:20px;'>
+        <label style='font-size:0.8rem; font-weight:bold; display:block;'>🌟 投稿・コメントもしたい方（本登録）</label>
         <p style='font-size:0.75rem; color:var(--secondary);'>メールアドレスを登録すると、知恵の共有ができるようになります。</p>
         <input type='email' name='email' id='emailField' placeholder='メールアドレス'>
-        <button type='submit' name='mode' value='full' class='btn-primary' style='width:100%; margin-top:10px;'>
+        <button type='button' onclick='submitAs(\"full\")' class='btn-primary' style='width:100%; margin-top:10px;'>
           本登録する（投稿機能あり）
         </button>
       </div>
+      
+      <input type='hidden' name='mode' id='submitMode'>
     </form>
   </div>
   
   <script>
-    // 本登録ボタンを押した時だけ、メアド入力をチェックする簡単なスクリプト
-    document.getElementById('authForm').onsubmit = function(e) {
-      const mode = document.activeElement.value;
-      const email = document.getElementById('emailField').value;
-      if (mode === 'full' && email.trim() === '') {
-        alert('本登録にはメールアドレスが必要です！');
+    // エンターキーで勝手に送信されるのを防ぐ
+    document.getElementById('authForm').onkeypress = function(e) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
         return false;
       }
     };
+
+    function submitAs(mode) {
+      const form = document.getElementById('authForm');
+      const email = document.getElementById('emailField').value;
+      const user = document.getElementById('userName').value;
+      const pass = document.getElementById('password').value;
+
+      // 名前とパスワードが入っていない時はブラウザのバリデーションを動かす
+      if (!user || !pass) {
+        form.reportValidity();
+        return;
+      }
+
+      if (mode === 'full' && email.trim() === '') {
+        alert('本登録にはメールアドレスが必要です！');
+        return;
+      }
+
+      document.getElementById('submitMode').value = mode;
+      form.submit();
+    }
   </script>
   "
 end
