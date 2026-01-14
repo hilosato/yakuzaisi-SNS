@@ -69,28 +69,36 @@ def header_menu
   flash_msg = session[:notice] ? "<div class='flash-notice'>#{session[:notice]}</div>" : ""
   session[:notice] = nil
   "
-  <style>
-    :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
-    body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
-    .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-    nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-    .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
-    .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
-    .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-    .stat-box { background: #fbfbfd; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #d2d2d7; }
-    .stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-    .stat-label { font-size: 0.7rem; color: var(--secondary); font-weight: 600; }
-    .tag { padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; color: white; margin-right: 8px; }
-    .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
-    .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
-    .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
-    .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
-    .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-    input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; }
-  </style>
-  <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
-  #{flash_msg}
-  <div class='container'>
+  <!DOCTYPE html>
+  <html lang='ja'>
+  <head>
+    <meta charset='UTF-8'>
+    <title>PharmaShare - 薬剤師専用SNS｜現場の知恵と経験が集まる場所</title>
+    <meta name='description' content='インシデント事例、疑義照会、他職種連携から部下教育まで。教科書には載っていない「現場の正解」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、みんなで宝庫に変えていきましょう。'>
+    <style>
+      :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
+      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
+      .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
+      nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+      .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
+      .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
+      .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .stat-box { background: #fbfbfd; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #d2d2d7; }
+      .stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
+      .stat-label { font-size: 0.7rem; color: var(--secondary); font-weight: 600; }
+      .tag { padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; color: white; margin-right: 8px; }
+      .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
+      .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
+      .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
+      .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
+      .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; }
+      input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; }
+    </style>
+  </head>
+  <body>
+    <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
+    #{flash_msg}
+    <div class='container'>
   "
 end
 
