@@ -1,3 +1,4 @@
+Ruby
 require 'sinatra'
 require 'sqlite3'
 require 'time'
@@ -27,7 +28,6 @@ def setup_db
   db.execute "CREATE TABLE IF NOT EXISTS likes_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
   db.execute "CREATE TABLE IF NOT EXISTS stars_map (id INTEGER PRIMARY KEY AUTOINCREMENT, user_name TEXT, post_id INTEGER);"
   
-  # image_path カラムがなければ追加（エラー回避用）
   begin
     db.execute "ALTER TABLE posts ADD COLUMN image_path TEXT;"
   rescue SQLite3::SQLException
@@ -60,13 +60,13 @@ def header_menu
     nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
     .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
     .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
-    .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+    .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .stat-box { background: #fbfbfd; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #d2d2d7; }
     .stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
     .stat-label { font-size: 0.7rem; color: var(--secondary); font-weight: 600; }
     .menu-item { display: block; padding: 15px; background: var(--card); border-radius: 12px; margin-bottom: 10px; text-decoration: none; color: var(--text); font-weight: 600; border: 1px solid #d2d2d7; transition: 0.2s; }
     .menu-item:hover { background: #fbfbfd; border-color: var(--primary); }
-    .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
+    .tag { padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; color: white; margin-right: 8px; }
     .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
     .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
     .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
@@ -80,7 +80,7 @@ def header_menu
   "
 end
 
-# --- メイン画面 ---
+# --- ホーム画面（タイトル・表題メイン） ---
 get '/' do
   word = params[:search]
   html = header_menu + "<h1>最新の知恵</h1>"
@@ -93,25 +93,19 @@ get '/' do
       sql_params = ["%#{word}%", "%#{word}%", "%#{word}%"]
     end
     db.execute(sql, sql_params).each do |row|
-      is_liked = session[:user] && db.execute("SELECT id FROM likes_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
-      is_starred = session[:user] && db.execute("SELECT id FROM stars_map WHERE user_name = ? AND post_id = ?", [session[:user], row[0]]).first
-      l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
-      s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
       cat_name = row[10] || "その他"
       html += "
-      <div class='post-card'>
-        <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
-        <span style='color:var(--secondary); font-size:0.8rem;'>💊 #{row[2]}</span>
-        <h2 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h2>"
-      if row[9] # 画像があればサムネイル
-        html += "<img src='/uploads/#{row[9]}' style='width:100%; max-height:200px; object-fit:cover; border-radius:8px; margin-bottom:10px;'>"
-      end
-      html += "
-        <div style='display:flex; justify-content:space-between; align-items:center;'>
-          <p style='color:var(--secondary); font-size:0.85rem;'>👨‍⚕️ #{row[1]} | 📅 #{row[7]}</p>
-          <div style='display:flex; gap:8px;'>
-            <form action='/post/#{row[0]}/like' method='post' style='margin:0;'><button type='submit' class='#{l_class}'>👍 #{row[3]}</button></form>
-            <form action='/post/#{row[0]}/star' method='post' style='margin:0;'><button type='submit' class='#{s_class}'>⭐️ #{row[4]}</button></form>
+      <div class='post-card' style='padding: 20px;'>
+        <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
+          <div style='flex: 1;'>
+            <span class='tag' style='background:#{CATEGORIES[cat_name] || '#86868b'};'>#{cat_name}</span>
+            <span style='color:var(--secondary); font-size:0.75rem;'>💊 #{row[2]}</span>
+            <h3 style='margin:10px 0;'><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3>
+            <p style='color:var(--secondary); font-size:0.8rem; margin:0;'>👨‍⚕️ #{row[1]} | 📅 #{row[7].split(' ')[0]}</p>
+          </div>
+          <div style='text-align:right; margin-left:15px;'>
+            <div style='font-size:0.85rem; color:var(--secondary);'>👍 #{row[3]}</div>
+            <div style='font-size:0.85rem; color:var(--star);'>⭐️ #{row[4]}</div>
           </div>
         </div>
       </div>"
@@ -120,7 +114,7 @@ get '/' do
   html + "</div>"
 end
 
-# --- 投稿詳細 ---
+# --- 投稿詳細（ここで内容と画像を表示） ---
 get '/post/:id' do
   redirect '/login_page' unless session[:user]
   query do |db|
@@ -134,38 +128,50 @@ get '/post/:id' do
     
     html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
-        <div style='display:flex; justify-content:space-between;'><h1>#{post[8]}</h1>
-        <div style='display:flex; gap:8px;'><form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{l_class}'>👍 #{post[3]}</button></form>
-        <form action='/post/#{post[0]}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ #{post[4]}</button></form></div></div>"
-    if post[9] # 画像表示
+        <span class='tag' style='background:#{CATEGORIES[post[10]] || '#86868b'};'>#{post[10]}</span>
+        <h1 style='margin:10px 0;'>#{post[8]}</h1>
+        <p style='color:var(--secondary); font-size:0.9rem;'>薬剤名: #{post[2]} | 投稿者: #{post[1]}</p>
+        <hr style='border:0; border-top:1px solid #eee; margin:20px 0;'>"
+    if post[9]
       html += "<div style='margin-bottom:20px;'><img src='/uploads/#{post[9]}' style='width:100%; border-radius:12px;'></div>"
     end
     html += "
-        <div style='white-space: pre-wrap; margin:20px 0;'>#{post[5]}</div>
-        <div class='reply-form'><h4>💬 コメント・返信を送る</h4><form action='/post' method='post' enctype='multipart/form-data'><input type='hidden' name='parent_id' value='#{post[0]}'><input type='hidden' name='category' value='#{post[10]}'><input type='hidden' name='drug_name' value='#{post[2]}'><input type='hidden' name='title' value='Re: #{post[8]}'><textarea name='message' required></textarea><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><button type='submit' class='btn-primary' style='width:auto;'>送信</button></form></div></div>"
+        <div style='white-space: pre-wrap; font-size:1.05rem;'>#{post[5]}</div>
+        <div style='display:flex; gap:10px; margin-top:30px;'>
+          <form action='/post/#{post[0]}/like' method='post'><button type='submit' class='#{l_class}'>👍 役に立った！ (#{post[3]})</button></form>
+          <form action='/post/#{post[0]}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post[4]})</button></form>
+        </div>
+        
+        <div class='reply-form' style='margin-top:40px; padding-top:20px; border-top:1px solid #eee;'>
+          <h4>💬 コメント・返信</h4>
+          <form action='/post' method='post' enctype='multipart/form-data'>
+            <input type='hidden' name='parent_id' value='#{post[0]}'>
+            <input type='hidden' name='category' value='#{post[10]}'>
+            <input type='hidden' name='drug_name' value='#{post[2]}'>
+            <input type='hidden' name='title' value='Re: #{post[8]}'>
+            <textarea name='message' placeholder='返信を入力...' required></textarea>
+            <input type='file' name='image' accept='image/*'>
+            <button type='submit' class='btn-primary'>返信を送信</button>
+          </form>
+        </div>
+      </div>"
     
     replies.each do |r| 
       html += "
       <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
         <strong>#{r[1]}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r[7]}</span>
         <p>#{r[5]}</p>"
-      if r[9] # 返信の画像
-        html += "<img src='/uploads/#{r[9]}' style='max-width:200px; border-radius:8px; display:block; margin-bottom:10px;'>"
-      end
-      html += "
-        <a href='/post/#{r[0]}' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>↩︎ 返信する</a>
-      </div>"
+      html += "<img src='/uploads/#{r[9]}' style='max-width:200px; border-radius:8px; display:block;'> " if r[9]
+      html += "</div>"
     end
     html + "</div>"
   end
 end
 
-# --- 投稿・画像保存ロジック（2段階ステータス対応） ---
+# --- 投稿保存ロジック ---
 post '/post' do
   redirect '/login_page' unless session[:user]
-  
   query do |db|
-    # 2段階ステータス：メアドチェック
     user_info = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first
     if user_info.nil? || user_info[0].nil? || user_info[0].strip == ""
       session[:notice] = "投稿にはマイページからメールアドレスの登録が必要です"
@@ -173,7 +179,6 @@ post '/post' do
       return
     end
 
-    # 画像保存
     image_filename = nil
     if params[:image] && params[:image][:tempfile]
       image_filename = Time.now.to_i.to_s + "_" + params[:image][:filename]
@@ -192,14 +197,13 @@ post '/post' do
   end
 end
 
-# --- マイページ（メアド更新機能追加） ---
+# --- マイページ ---
 get '/profile' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<h1>マイページ</h1>"
   query do |db|
     user_row = db.execute("SELECT email FROM users WHERE user_name = ?", [session[:user]]).first
     current_email = user_row[0] || ""
-    
     post_count = db.execute("SELECT COUNT(*) FROM posts WHERE user_name = ? AND parent_id = -1", [session[:user]]).first[0]
     total_likes = db.execute("SELECT SUM(likes) FROM posts WHERE user_name = ?", [session[:user]]).first[0] || 0
     total_stars = db.execute("SELECT SUM(stars) FROM posts WHERE user_name = ?", [session[:user]]).first[0] || 0
@@ -224,11 +228,6 @@ get '/profile' do
         <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
         <button type='submit' class='btn-primary' style='width:auto;'>保存する</button>
       </form>
-    </div>
-
-    <div style='margin-top:30px;'>
-      <a href='/my_posts' class='menu-item'>📝 自分の投稿一覧を見る →</a>
-      <a href='/my_stars' class='menu-item'>⭐️ お気に入り一覧を見る →</a>
     </div>"
   end
   html + "</div>"
@@ -236,16 +235,14 @@ end
 
 post '/update_profile' do
   redirect '/login_page' unless session[:user]
-  query do |db|
-    db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]])
-  end
+  query { |db| db.execute("UPDATE users SET email = ? WHERE user_name = ?", [params[:email], session[:user]]) }
   session[:notice] = "プロフィールを更新しました！"
   redirect '/profile'
 end
 
 # --- 認証 ---
 post '/auth' do
-  user_name, password, email = params[:user_name], params[:password], params[:email]
+  user_name, password, email, mode = params[:user_name], params[:password], params[:email], params[:mode]
   query do |db|
     user = db.execute("SELECT * FROM users WHERE user_name = ?", [user_name]).first
     if user
@@ -258,7 +255,9 @@ post '/auth' do
       end
     else
       hash_pass = BCrypt::Password.create(password)
-      db.execute("INSERT INTO users (user_name, password_digest, email) VALUES (?, ?, ?)", [user_name, hash_pass, email])
+      # modeがfullでemailがあれば保存
+      saved_email = (mode == 'full') ? email : nil
+      db.execute("INSERT INTO users (user_name, password_digest, email) VALUES (?, ?, ?)", [user_name, hash_pass, saved_email])
       session[:user] = user_name
       redirect '/'
     end
@@ -269,90 +268,39 @@ get '/login_page' do
   header_menu + "
   <div class='post-card'>
     <h2>🔑 ログイン / 新規登録</h2>
-    <p style='font-size:0.8rem; color:var(--secondary); margin-bottom:20px;'>
-      既にアカウントがある方は、名前とパスワードでログインできます。
-    </p>
-
     <form action='/auth' method='post' id='authForm'>
-      <label style='font-size:0.8rem; font-weight:bold;'>必須項目</label>
-      <input type='text' name='user_name' id='userName' placeholder='名前（ニックネーム）' required>
+      <input type='text' name='user_name' id='userName' placeholder='名前' required>
       <input type='password' name='password' id='password' placeholder='パスワード' required>
       
       <div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'>
-        <p style='font-size:0.75rem; color:var(--secondary); margin-bottom:10px;'>まずは見てみたい方はこちら</p>
         <button type='button' onclick='submitAs(\"guest\")' class='btn-primary' style='background:var(--secondary); width:100%;'>
-          仮登録して閲覧する（閲覧のみ）
+          仮登録して閲覧する
         </button>
       </div>
 
       <div style='margin-top:20px; border-top:1px solid #d2d2d7; padding-top:20px;'>
-        <label style='font-size:0.8rem; font-weight:bold; display:block;'>🌟 投稿・コメントもしたい方（本登録）</label>
-        <p style='font-size:0.75rem; color:var(--secondary);'>メールアドレスを登録すると、知恵の共有ができるようになります。</p>
+        <label style='font-size:0.8rem; font-weight:bold;'>🌟 投稿・コメントもしたい方</label>
         <input type='email' name='email' id='emailField' placeholder='メールアドレス'>
         <button type='button' onclick='submitAs(\"full\")' class='btn-primary' style='width:100%; margin-top:10px;'>
-          本登録する（投稿機能あり）
+          本登録する
         </button>
       </div>
-      
       <input type='hidden' name='mode' id='submitMode'>
     </form>
   </div>
-  
   <script>
-    // エンターキーで勝手に送信されるのを防ぐ
-    document.getElementById('authForm').onkeypress = function(e) {
-      if (e.key === 'Enter') {
-        e.preventDefault();
-        return false;
-      }
-    };
-
+    document.getElementById('authForm').onkeypress = function(e) { if (e.key === 'Enter') { e.preventDefault(); return false; } };
     function submitAs(mode) {
       const form = document.getElementById('authForm');
-      const email = document.getElementById('emailField').value;
-      const user = document.getElementById('userName').value;
-      const pass = document.getElementById('password').value;
-
-      // 名前とパスワードが入っていない時はブラウザのバリデーションを動かす
-      if (!user || !pass) {
-        form.reportValidity();
-        return;
-      }
-
-      if (mode === 'full' && email.trim() === '') {
-        alert('本登録にはメールアドレスが必要です！');
-        return;
-      }
-
+      if (!document.getElementById('userName').value || !document.getElementById('password').value) { form.reportValidity(); return; }
+      if (mode === 'full' && document.getElementById('emailField').value.trim() === '') { alert('本登録にはメアドが必要です'); return; }
       document.getElementById('submitMode').value = mode;
       form.submit();
     }
-  </script>
-  "
+  </script>"
 end
 
-# --- その他一覧ページ ---
-get '/my_posts' do
-  redirect '/login_page' unless session[:user]
-  html = header_menu + "<a href='/profile' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a><h1>📝 自分の投稿</h1>"
-  query { |db| db.execute("SELECT * FROM posts WHERE user_name = ? AND parent_id = -1 ORDER BY id DESC", [session[:user]]).each { |row| html += "<div class='post-card'><h3><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3></div>" } }
-  html + "</div>"
-end
-
-get '/my_stars' do
-  redirect '/login_page' unless session[:user]
-  html = header_menu + "<a href='/profile' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a><h1>⭐️ お気に入り</h1>"
-  query { |db| db.execute("SELECT p.* FROM posts p JOIN stars_map s ON p.id = s.post_id WHERE s.user_name = ? ORDER BY s.id DESC", [session[:user]]).each { |row| html += "<div class='post-card'><h3><a href='/post/#{row[0]}' style='text-decoration:none; color:var(--text);'>#{row[8]}</a></h3></div>" } }
-  html + "</div>"
-end
-
-get '/post_new' do
-  redirect '/login_page' unless session[:user]
-  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
-  CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
-  html += "</select><input type='text' name='title' placeholder='タイトル' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
-end
-
+# --- アクション ---
 post '/post/:id/like' do
   redirect '/login_page' unless session[:user]
   query do |db|
@@ -386,4 +334,11 @@ end
 get '/logout' do
   session.clear
   redirect '/'
+end
+
+get '/post_new' do
+  redirect '/login_page' unless session[:user]
+  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
+  CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
+  html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
 end
