@@ -359,3 +359,9 @@ get '/post_new' do
   CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
   html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
 end
+
+# Googleのロボットへの「大歓迎」メッセージ
+get '/robots.txt' do
+  content_type 'text/plain'
+  "User-agent: *\nAllow: /"
+end
