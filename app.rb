@@ -160,7 +160,10 @@ get '/post/:id' do
     
     html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
-        <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
+        <div style='display:flex; justify-content:space-between; align-items:center;'>
+          <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
+          #{post['user_name'] == session[:user] ? "<a href='/post/#{post['id']}/edit' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>✏️ 編集する</a>" : ""}
+        </div>
         <h1 style='margin:10px 0;'>#{post['title']}</h1>
         <p style='color:var(--secondary); font-size:0.9rem;'>薬剤名: #{post['drug_name']} | 投稿者: #{post['user_name']}</p>
         <hr style='border:0; border-top:1px solid #eee; margin:20px 0;'>"
@@ -202,20 +205,57 @@ get '/post/:id' do
         <div style='display:flex; justify-content:space-between;'>
           <div>
             <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r['created_at']}</span>
-          </div>"
+          </div>
+          <div style='display:flex; gap:10px;'>"
       if r['user_name'] == session[:user]
         html += "
+        <a href='/post/#{r['id']}/edit' style='font-size:0.7rem; color:var(--primary); text-decoration:none;'>編集</a>
         <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
           <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.7rem;'>削除</button>
         </form>"
       end
       html += "
+          </div>
         </div>
         <p>#{r['message']}</p>"
       html += "<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'> " if r['image_path'] && r['image_path'] != ""
       html += "</div>"
     end
     html + "</div>"
+  end
+end
+
+# --- 編集画面 ---
+get '/post/:id/edit' do
+  redirect '/login_page' unless session[:user]
+  query("SELECT * FROM posts WHERE id = $1", [params[:id]]) do |res|
+    post = res.first
+    if post && post['user_name'] == session[:user]
+      html = header_menu + "<h1>投稿を編集</h1><div class='post-card'><form action='/post/#{post['id']}/update' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
+      CATEGORIES.each { |name, color| html += "<option value='#{name}' #{'selected' if post['category'] == name}>#{name}</option>" }
+      html += "</select><input type='text' name='title' value='#{post['title']}' placeholder='表題' required><input type='text' name='drug_name' value='#{post['drug_name']}' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required>#{post['message']}</textarea><button type='submit' class='btn-primary'>更新する</button><a href='javascript:history.back()' style='display:block; text-align:center; margin-top:15px; color:var(--secondary); text-decoration:none; font-size:0.9rem;'>キャンセル</a></form></div></div>"
+      html
+    else
+      session[:notice] = "編集権限がありません。"
+      redirect '/'
+    end
+  end
+end
+
+# --- 編集保存 ---
+post '/post/:id/update' do
+  redirect '/login_page' unless session[:user]
+  query("SELECT user_name, parent_id FROM posts WHERE id = $1", [params[:id]]) do |res|
+    post = res.first
+    if post && post['user_name'] == session[:user]
+      query("UPDATE posts SET category = $1, title = $2, drug_name = $3, message = $4 WHERE id = $5", 
+            [params[:category], params[:title], params[:drug_name], params[:message], params[:id]])
+      session[:notice] = "更新しました！"
+      redirect post['parent_id'].to_i == -1 ? "/post/#{params[:id]}" : "/post/#{post['parent_id']}"
+    else
+      session[:notice] = "編集権限がありません。"
+      redirect '/'
+    end
   end
 end
 
