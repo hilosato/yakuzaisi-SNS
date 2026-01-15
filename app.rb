@@ -7,7 +7,7 @@ require 'cgi'
 
 set :port, ENV['PORT'] || 4567
 set :bind, '0.0.0.0'
-use Rack::Session::Cookie, :key => 'rack.session', :path => '/', :secret => 'katabami_pharmashare_secret_2026'
+use Rack::Session::Cookie, :key => 'rack.session', :path => '/', :secret => 'katabami_pharmashare_2026_super_long_secret_key_for_security_reason_over_64_characters'
 
 def db_connection
   uri = URI.parse(ENV['DATABASE_URL'] || 'postgres://localhost/pharmashare')
