@@ -273,7 +273,8 @@ end
 # --- マイページ ---
 get '/profile' do
   redirect '/login_page' unless session[:user]
-  html = header_menu + "<h1>マイページ</h1>"
+  
+  # データの集計
   current_email, post_count, total_likes, total_stars = "", 0, 0, 0
   query("SELECT email FROM users WHERE user_name = $1", [session[:user]]) { |res| current_email = res.first['email'] if res.any? }
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
@@ -281,7 +282,40 @@ get '/profile' do
     total_likes = res.first['l'] || 0
     total_stars = res.first['s'] || 0
   end
-  html += "<div class='post-card'><div style='text-align:center; margin-bottom:20px;'><div style='width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div><h3 style='margin:0;'>#{session[:user]} 先生</h3></div><div style='display:flex; gap:10px;'><div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div><div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div><div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div></div></div><div class='post-card'><h4>👤 プロフィール編集</h4><form action='/update_profile' method='post'><label style='font-size:0.8rem;'>メールアドレス（投稿に必須）</label><input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required><button type='submit' class='btn-primary' style='width:auto;'>保存する</button></form></div></div>"
+
+  html = header_menu + "
+    <h1>マイページ</h1>
+    
+    <div class='post-card'>
+      <div style='text-align:center; margin-bottom:20px;'>
+        <div style='width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
+        <h3 style='margin:0;'>#{session[:user]} 先生</h3>
+      </div>
+      <div style='display:flex; gap:10px;'>
+        <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
+        <div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div>
+        <div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div>
+      </div>
+    </div>
+
+    <div class='post-card' style='display: flex; flex-direction: column; gap: 10px;'>
+      <h4>🔍 コンテンツを確認する</h4>
+      <a href='/my_posts' class='btn-primary' style='text-decoration: none; text-align: center; background: #3498db;'>📝 自分の投稿一覧</a>
+      <a href='/my_favorites' class='btn-primary' style='text-decoration: none; text-align: center; background: #e74c3c;'>❤️ お気に入りした投稿</a>
+    </div>
+
+    <div class='post-card'>
+      <h4>👤 プロフィール編集</h4>
+      <form action='/update_profile' method='post'>
+        <label style='font-size:0.8rem;'>メールアドレス（投稿に必須）</label>
+        <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
+        <button type='submit' class='btn-primary' style='width:auto;'>保存する</button>
+      </form>
+      <div style='margin-top: 20px; text-align: center;'>
+        <a href='/logout' style='color: #e74c3c; font-size: 0.8rem; text-decoration: none;'>🚪 ログアウト</a>
+      </div>
+    </div>
+  </div>"
 end
 
 post '/update_profile' do
