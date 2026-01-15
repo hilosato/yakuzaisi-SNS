@@ -174,7 +174,6 @@ get '/post/:id' do
           <form action='/post/#{post['id']}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post['stars']})</button></form>
         </div>"
         
-    # --- 削除ボタン追加部分 ---
     if post['user_name'] == session[:user]
       html += "
       <form action='/post/#{post['id']}/delete' method='post' style='margin-top:20px;' onsubmit='return confirm(\"本当に削除しますか？\");'>
@@ -204,7 +203,6 @@ get '/post/:id' do
           <div>
             <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r['created_at']}</span>
           </div>"
-      # 返信にも削除ボタン
       if r['user_name'] == session[:user]
         html += "
         <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
@@ -270,11 +268,10 @@ post '/post/:id/delete' do
   end
 end
 
-# --- マイページ ---
+# --- マイページ（プロフィール） ---
 get '/profile' do
   redirect '/login_page' unless session[:user]
   
-  # データの集計
   current_email, post_count, total_likes, total_stars = "", 0, 0, 0
   query("SELECT email FROM users WHERE user_name = $1", [session[:user]]) { |res| current_email = res.first['email'] if res.any? }
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
@@ -301,7 +298,7 @@ get '/profile' do
     <div class='post-card' style='display: flex; flex-direction: column; gap: 10px;'>
       <h4>🔍 コンテンツを確認する</h4>
       <a href='/my_posts' class='btn-primary' style='text-decoration: none; text-align: center; background: #3498db;'>📝 自分の投稿一覧</a>
-      <a href='/my_favorites' class='btn-primary' style='text-decoration: none; text-align: center; background: #e74c3c;'>❤️ お気に入りした投稿</a>
+      <a href='/my_favorites' class='btn-primary' style='text-decoration: none; text-align: center; background: var(--star);'>⭐️ お気に入りした投稿</a>
     </div>
 
     <div class='post-card'>
@@ -316,6 +313,51 @@ get '/profile' do
       </div>
     </div>
   </div>"
+end
+
+# --- 自分の投稿一覧 ---
+get '/my_posts' do
+  redirect '/login_page' unless session[:user]
+  html = header_menu + "<h1>📝 自分の投稿</h1>"
+  query("SELECT * FROM posts WHERE user_name = $1 AND parent_id = -1 ORDER BY id DESC", [session[:user]]) do |res|
+    if res.any?
+      res.each do |row|
+        cat_name = row['category'] || "その他独り言"
+        html += "
+        <div class='post-card' style='padding: 20px;'>
+          <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
+          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
+          <p style='color:var(--secondary); font-size:0.8rem;'>📅 #{row['created_at']}</p>
+        </div>"
+      end
+    else
+      html += "<p>まだ投稿がありません。</p>"
+    end
+  end
+  html + "</div>"
+end
+
+# --- お気に入り（スター）した投稿一覧 ---
+get '/my_favorites' do
+  redirect '/login_page' unless session[:user]
+  html = header_menu + "<h1>⭐️ お気に入り</h1>"
+  sql = "SELECT p.* FROM posts p JOIN stars_map s ON p.id = s.post_id WHERE s.user_name = $1 ORDER BY s.id DESC"
+  query(sql, [session[:user]]) do |res|
+    if res.any?
+      res.each do |row|
+        cat_name = row['category'] || "その他独り言"
+        html += "
+        <div class='post-card' style='padding: 20px;'>
+          <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
+          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
+          <p style='color:var(--secondary); font-size:0.8rem;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at']}</p>
+        </div>"
+      end
+    else
+      html += "<p>お気に入りした投稿はまだありません。</p>"
+    end
+  end
+  html + "</div>"
 end
 
 post '/update_profile' do
@@ -394,8 +436,6 @@ get '/post_new' do
   html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
 end
 
-
-# Googleのロボットへの「大歓迎」メッセージ
 get '/robots.txt' do
   content_type 'text/plain'
   "User-agent: *\nAllow: /"
