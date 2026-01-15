@@ -390,7 +390,90 @@ post '/auth' do
 end
 
 get '/login_page' do
-  header_menu + "<div class='post-card'><h2>🔑 ログイン / 新規登録</h2><form action='/auth' method='post' id='authForm'><input type='text' name='user_name' id='userName' placeholder='名前' required><input type='password' name='password' id='password' placeholder='パスワード' required><div style='margin-top:20px; padding:15px; background:#f5f5f7; border-radius:12px;'><button type='button' onclick='submitAs(\"guest\")' class='btn-primary' style='background:var(--secondary); width:100%;'>仮登録して閲覧する</button></div><div style='margin-top:20px; border-top:1px solid #d2d2d7; padding-top:20px;'><label style='font-size:0.8rem; font-weight:bold;'>🌟 本登録して投稿する</label><input type='email' name='email' id='emailField' placeholder='メールアドレス'><button type='button' onclick='submitAs(\"full\")' class='btn-primary' style='width:100%; margin-top:10px;'>本登録する</button></div><input type='hidden' name='mode' id='submitMode'></form></div><script>document.getElementById('authForm').onkeypress = function(e) { if (e.key === 'Enter') { e.preventDefault(); return false; } };function submitAs(mode) {const form = document.getElementById('authForm');if (!document.getElementById('userName').value || !document.getElementById('password').value) { form.reportValidity(); return; }if (mode === 'full' && document.getElementById('emailField').value.trim() === '') { alert('本登録にはメアドが必要です'); return; }document.getElementById('submitMode').value = mode;form.submit();}</script>"
+  header_menu + "
+    <div class='container' style='max-width: 500px;'>
+      <div class='post-card'>
+        <h2 style='text-align: center; color: var(--primary);'>🔑 PharmaShareへようこそ</h2>
+        <p style='font-size: 0.85rem; color: var(--secondary); text-align: center; margin-bottom: 30px;'>
+          薬剤師の知恵を共有し、現場をより良くするコミュニティ
+        </p>
+
+        <div style='display: flex; border-bottom: 1px solid #d2d2d7; margin-bottom: 20px;'>
+          <button onclick='showAuth(\"login\")' id='tab-login' style='flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 2px solid var(--primary); cursor: pointer;'>ログイン</button>
+          <button onclick='showAuth(\"signup\")' id='tab-signup' style='flex: 1; padding: 10px; border: none; background: none; color: var(--secondary); cursor: pointer;'>新規登録</button>
+        </div>
+
+        <form action='/auth' method='post' id='authForm'>
+          <input type='text' name='user_name' id='userName' placeholder='ユーザー名' required>
+          <input type='password' name='password' id='password' placeholder='パスワード' required>
+          
+          <div id='signup-extras' style='display: none; margin-top: 10px; padding: 15px; background: #fdfaf0; border-radius: 12px; border: 1px solid #faecc5;'>
+            <label style='font-size: 0.85rem; font-weight: bold; color: #856404;'>🌟 本登録のメリット</label>
+            <ul style='font-size: 0.75rem; color: #856404; margin: 8px 0; padding-left: 20px;'>
+              <li>知恵を投稿して仲間に共有できる</li>
+              <li>「お気に入り」を保存して後で見返せる</li>
+              <li>自分の投稿実績がマイページに残る</li>
+            </ul>
+            <input type='email' name='email' id='emailField' placeholder='メールアドレス（本登録用）'>
+            <p style='font-size: 0.7rem; color: var(--secondary); margin-top: 5px;'>※閲覧のみ（仮登録）の方は空欄でOKです</p>
+          </div>
+
+          <input type='hidden' name='mode' id='submitMode' value='login'>
+          
+          <button type='button' id='main-btn' onclick='handleAuth()' class='btn-primary' style='width: 100%; margin-top: 20px;'>ログインする</button>
+        </form>
+      </div>
+    </div>
+
+    <script>
+      function showAuth(mode) {
+        const signupExtras = document.getElementById('signup-extras');
+        const mainBtn = document.getElementById('main-btn');
+        const tabLogin = document.getElementById('tab-login');
+        const tabSignup = document.getElementById('tab-signup');
+        const submitMode = document.getElementById('submitMode');
+
+        if (mode === 'signup') {
+          signupExtras.style.display = 'block';
+          mainBtn.innerText = 'アカウントを作成する';
+          tabSignup.style.borderBottom = '2px solid var(--primary)';
+          tabSignup.style.fontWeight = 'bold';
+          tabSignup.style.color = 'var(--text)';
+          tabLogin.style.borderBottom = 'none';
+          tabLogin.style.fontWeight = 'normal';
+          tabLogin.style.color = 'var(--secondary)';
+          submitMode.value = 'signup';
+        } else {
+          signupExtras.style.display = 'none';
+          mainBtn.innerText = 'ログインする';
+          tabLogin.style.borderBottom = '2px solid var(--primary)';
+          tabLogin.style.fontWeight = 'bold';
+          tabLogin.style.color = 'var(--text)';
+          tabSignup.style.borderBottom = 'none';
+          tabSignup.style.fontWeight = 'normal';
+          tabSignup.style.color = 'var(--secondary)';
+          submitMode.value = 'login';
+        }
+      }
+
+      function handleAuth() {
+        const form = document.getElementById('authForm');
+        const mode = document.getElementById('submitMode').value;
+        const email = document.getElementById('emailField').value;
+
+        if (!document.getElementById('userName').value || !document.getElementById('password').value) {
+          form.reportValidity();
+          return;
+        }
+
+        // 新規登録モードでメールがあれば 'full'、なければ 'guest'
+        if (mode === 'signup') {
+          document.getElementById('submitMode').value = (email.trim() !== '') ? 'full' : 'guest';
+        }
+        form.submit();
+      }
+    </script>
+  "
 end
 
 # --- いいね・スター機能 ---
