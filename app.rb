@@ -161,6 +161,9 @@ get '/' do
   html + "</div>"
 end
 
+
+
+
 # --- 投稿詳細 ---
 get '/post/:id' do
   redirect '/login_page' unless session[:user]
@@ -196,10 +199,9 @@ get '/post/:id' do
         <div style='display:flex; gap:10px; margin-top:30px;'>
           <form action='/post/#{post['id']}/like' method='post'><button type='submit' class='#{l_class}'>👍 役に立った！ (#{post['likes']})</button></form>
           <form action='/post/#{post['id']}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post['stars']})</button></form>
-        </div>"
-    html += "</div>" # 投稿カード終わり
+        </div>
+      </div>"
 
-    # 返信フォーム
     html += "
       <div class='post-card' style='margin-top:20px;'>
         <h4>💬 コメント・返信</h4>
@@ -215,6 +217,7 @@ get '/post/:id' do
       </div>"
     
     replies.each do |r| 
+      img_tag = (r['image_path'] && r['image_path'] != "") ? "<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'>" : ""
       html += "
       <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
         <div style='display:flex; justify-content:space-between;'>
@@ -223,14 +226,14 @@ get '/post/:id' do
           </div>
         </div>
         <p style='font-size:1rem;'>#{CGI.escapeHTML(r['message'])}</p>
-        #{"<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'>" if r['image_path'] && r['image_path'] != ""}
+        #{img_tag}
       </div>"
     end
     html + "</div>"
   end
 end
 
-# --- ②③ マイページ（アイコン & 自己紹介対応） ---
+# --- ②③ マイページ ---
 get '/profile/:user_name' do
   target_user = params[:user_name]
   u_info = nil
@@ -242,7 +245,9 @@ get '/profile/:user_name' do
   query("SELECT SUM(likes) as l FROM posts WHERE user_name = $1", [target_user]) { |res| total_likes = res.first['l'] || 0 }
 
   is_mine = (session[:user] == target_user)
-  icon_src = u_info['icon_path'] && u_info['icon_path'] != "" ? "/uploads/#{u_info['icon_path']}" : "https://ui-avatars.com/api/?name=#{CGI.escape(target_user)}&background=random"
+  icon_src = (u_info['icon_path'] && u_info['icon_path'] != "") ? "/uploads/#{u_info['icon_path']}" : "https://ui-avatars.com/api/?name=#{CGI.escape(target_user)}&background=random"
+
+  bio_text = (u_info['bio'] && u_info['bio'] != "") ? CGI.escapeHTML(u_info['bio']) : "自己紹介はまだありません。"
 
   html = header_menu + "
     <div class='post-card' style='text-align:center;'>
@@ -254,14 +259,18 @@ get '/profile/:user_name' do
       </div>
       <div style='text-align:left; background:#fafafa; padding:20px; border-radius:12px; margin-top:15px; border:1px solid #eee;'>
         <h4 style='margin-top:0;'>自己紹介</h4>
-        <div style='white-space: pre-wrap;'>#{u_info['bio'] && u_info['bio'] != '' ? CGI.escapeHTML(u_info['bio']) : '自己紹介はまだありません。'}</div>
-      </div>
-      #{is_mine ? "<div style='margin-top:20px; display:flex; gap:10px; justify-content:center;'>
-          <a href='/profile_edit' class='btn-primary' style='text-decoration:none;'>プロフィール編集</a>
-          <a href='/my_favorites' class='btn-primary' style='text-decoration:none; background:var(--star);'>⭐️ お気に入り</a>
-        </div>" : ""}
-    </div>
-    <h3>📝 #{target_user} 先生の投稿一覧</h3>"
+        <div style='white-space: pre-wrap;'>#{bio_text}</div>
+      </div>"
+  
+  if is_mine
+    html += "
+      <div style='margin-top:20px; display:flex; gap:10px; justify-content:center;'>
+        <a href='/profile_edit' class='btn-primary' style='text-decoration:none;'>プロフィール編集</a>
+        <a href='/my_favorites' class='btn-primary' style='text-decoration:none; background:var(--star);'>⭐️ お気に入り</a>
+      </div>"
+  end
+  
+  html += "</div><h3>📝 #{target_user} 先生の投稿一覧</h3>"
 
   query("SELECT * FROM posts WHERE user_name = $1 AND parent_id = -1 ORDER BY id DESC", [target_user]) do |res|
     if res.any?
@@ -287,7 +296,7 @@ get '/profile_edit' do
         <label style='font-weight:bold;'>アイコン画像</label>
         <input type='file' name='icon' accept='image/*'>
         <label style='font-weight:bold;'>自己紹介文</label>
-        <textarea name='bio' rows='6' placeholder='例：病棟業務メインの薬剤師です。得意分野は循環器です。'>#{u_info['bio']}</textarea>
+        <textarea name='bio' rows='6' placeholder='例：病棟業務メインの薬剤師です。'>#{u_info['bio']}</textarea>
         <label style='font-weight:bold;'>メールアドレス</label>
         <input type='email' name='email' value='#{u_info['email']}' required>
         <button type='submit' class='btn-primary' style='width:100%; margin-top:20px;'>保存する</button>
@@ -336,7 +345,7 @@ get '/my_favorites' do
   html + "</div>"
 end
 
-# --- 投稿・編集・削除ロジック ---
+# --- 投稿・編集・削除 ---
 post '/post' do
   redirect '/login_page' unless session[:user]
   user_email = nil
@@ -349,6 +358,7 @@ post '/post' do
   image_filename = ""
   if params[:image] && params[:image][:tempfile]
     image_filename = Time.now.to_i.to_s + "_" + params[:image][:filename].gsub(/\s+/, '_')
+    Dir.mkdir("./public/uploads") unless Dir.exist?("./public/uploads")
     File.open("./public/uploads/#{image_filename}", 'wb') { |f| f.write(params[:image][:tempfile].read) }
   end
   jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
@@ -360,9 +370,23 @@ end
 
 get '/post_new' do
   redirect '/login_page' unless session[:user]
-  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
-  CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
-  html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.9rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary' style='width:100%;'>投稿する</button></form></div></div>"
+  cat_options = CATEGORIES.map { |name, _| "<option value='#{name}'>#{name}</option>" }.join
+  header_menu + "
+    <h1>新しい知恵を共有</h1>
+    <div class='post-card'>
+      <form action='/post' method='post' enctype='multipart/form-data'>
+        <label>カテゴリ</label>
+        <select name='category'>#{cat_options}</select>
+        <input type='text' name='title' placeholder='表題（タイトル）' required>
+        <input type='text' name='drug_name' placeholder='薬剤名' required>
+        <label style='font-size:0.9rem; color:var(--secondary);'>📷 画像添付（任意）</label>
+        <input type='file' name='image' accept='image/*'>
+        <textarea name='message' placeholder='内容を入力...' rows='10' required></textarea>
+        <input type='hidden' name='parent_id' value='-1'>
+        <button type='submit' class='btn-primary' style='width:100%;'>投稿する</button>
+      </form>
+    </div>
+  </div>"
 end
 
 get '/post/:id/edit' do
@@ -370,10 +394,21 @@ get '/post/:id/edit' do
   query("SELECT * FROM posts WHERE id = $1", [params[:id]]) do |res|
     post = res.first
     if post && post['user_name'] == session[:user]
-      html = header_menu + "<h1>投稿を編集</h1><div class='post-card'><form action='/post/#{post['id']}/update' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
-      CATEGORIES.each { |name, color| html += "<option value='#{name}' #{'selected' if post['category'] == name}>#{name}</option>" }
-      html += "</select><input type='text' name='title' value='#{CGI.escapeHTML(post['title'])}' placeholder='表題' required><input type='text' name='drug_name' value='#{CGI.escapeHTML(post['drug_name'])}' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required>#{CGI.escapeHTML(post['message'])}</textarea><button type='submit' class='btn-primary' style='width:100%;'>更新する</button><a href='javascript:history.back()' style='display:block; text-align:center; margin-top:15px; color:var(--secondary); text-decoration:none;'>キャンセル</a></form></div></div>"
-      html
+      cat_options = CATEGORIES.map { |name, _| "<option value='#{name}' #{'selected' if post['category'] == name}>#{name}</option>" }.join
+      header_menu + "
+        <h1>投稿を編集</h1>
+        <div class='post-card'>
+          <form action='/post/#{post['id']}/update' method='post'>
+            <label>カテゴリ</label>
+            <select name='category'>#{cat_options}</select>
+            <input type='text' name='title' value='#{CGI.escapeHTML(post['title'])}' required>
+            <input type='text' name='drug_name' value='#{CGI.escapeHTML(post['drug_name'])}' required>
+            <textarea name='message' rows='10' required>#{CGI.escapeHTML(post['message'])}</textarea>
+            <button type='submit' class='btn-primary' style='width:100%;'>更新する</button>
+          </form>
+          <a href='javascript:history.back()' style='display:block; text-align:center; margin-top:15px; color:var(--secondary); text-decoration:none;'>キャンセル</a>
+        </div>
+      </div>"
     else
       redirect '/'
     end
@@ -385,29 +420,20 @@ post '/post/:id/update' do
   redirect "/post/#{params[:id]}"
 end
 
-post '/post/:id/delete' do
-  query("DELETE FROM posts WHERE id = $1", [params[:id]])
-  redirect '/'
-end
-
-# --- 認証ロジック ---
+# --- 認証 ---
 get '/login_page' do
-  # (前回と同じログイン・登録フォーム)
-  # かたばみのコードの後半にある get '/login_page' の中身をここに入れてもいいよ！
-  # 長いので簡略化して書くね。
   header_menu + "
-    <div class='container' style='max-width: 500px;'>
+    <div style='max-width: 500px; margin: 0 auto;'>
       <div class='post-card'>
         <h2 style='text-align: center; color: var(--primary);'>🔑 PharmaShare</h2>
         <form action='/auth' method='post'>
           <input type='text' name='user_name' placeholder='ユーザー名' required>
           <input type='password' name='password' placeholder='パスワード' required>
-          <input type='hidden' name='mode' value='signup'>
           <button type='submit' class='btn-primary' style='width:100%;'>ログイン / 新規登録</button>
         </form>
         <p style='font-size:0.8rem; color:var(--secondary); text-align:center;'>※ユーザー名がなければ自動で新規登録されます</p>
       </div>
-    </div>"
+    </div></div>"
 end
 
 post '/auth' do
@@ -435,7 +461,7 @@ get '/logout' do
   redirect '/'
 end
 
-# --- いいね・スター機能 ---
+# --- いいね・スター ---
 post '/post/:id/like' do
   redirect '/login_page' unless session[:user]
   query("SELECT id FROM likes_map WHERE user_name = $1 AND post_id = $2", [session[:user], params[:id]]) do |res|
