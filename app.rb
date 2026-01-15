@@ -3,6 +3,7 @@ require 'pg'
 require 'time'
 require 'bcrypt'
 require 'uri'
+require 'cgi'
 
 # --- サーバー設定 ---
 set :port, ENV['PORT'] || 4567
@@ -48,16 +49,26 @@ ensure
   conn.close if conn
 end
 
-# 新しいカテゴリ設定
+# ① カテゴリ追加（適正使用するためのメモを追加）
 CATEGORIES = {
   "インシデントレポート" => "#ff3b30",
   "疑義紹介、処方介入事例" => "#0071e3",
+  "適正使用するためのメモ" => "#64d2ff", # 追加項目（空色）
   "他職種連携事例" => "#5856d6",
   "往診同行" => "#32d74b",
   "保険関連" => "#ff9f0a",
   "部下後輩教育" => "#af52de",
   "その他独り言" => "#8e8e93"
 }
+
+# ③ 検索ハイライト用ヘルパー
+def highlight(text, word)
+  return CGI.escapeHTML(text) if word.nil? || word.empty?
+  escaped_text = CGI.escapeHTML(text)
+  escaped_word = CGI.escapeHTML(word)
+  # 大文字小文字を区別せず、マッチした部分を <mark> タグで囲む
+  escaped_text.gsub(/(#{Regexp.escape(escaped_word)})/i, '<mark style="background-color: #ffef00; color: black; padding: 0 2px; border-radius: 4px;">\1</mark>')
+end
 
 # --- デザイン共通パーツ ---
 def header_menu
@@ -78,22 +89,22 @@ def header_menu
     <meta name='description' content='インシデント事例、疑義照会、他職種連携から部下教育まで。教科書には載っていない「現場の正解」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、みんなで宝庫に変えていきましょう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
-      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.5; }
+      /* ② 文字サイズ全体を少し大きく修正 (16px -> 17px) */
+      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 17px; }
       .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
       nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-      .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.2rem; }
-      .nav-link { color: var(--text); text-decoration: none; font-size: 0.9rem; margin-left: 15px; font-weight: 500; }
+      .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.3rem; }
+      .nav-link { color: var(--text); text-decoration: none; font-size: 1rem; margin-left: 15px; font-weight: 500; }
       .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
       .stat-box { background: #fbfbfd; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #d2d2d7; }
-      .stat-num { display: block; font-size: 1.5rem; font-weight: 700; color: var(--primary); }
-      .stat-label { font-size: 0.7rem; color: var(--secondary); font-weight: 600; }
-      .tag { padding: 4px 8px; border-radius: 6px; font-size: 0.65rem; font-weight: 700; color: white; margin-right: 8px; }
-      .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 4px 12px; cursor: pointer; font-size: 0.8rem; display: flex; align-items: center; gap: 4px; }
-      .like-btn.active { background: #ffebeb; border-color: #ff3b30; color: #ff3b30; }
-      .star-btn.active { background: #fff9eb; border-color: var(--star); color: var(--star); }
-      .flash-notice { background: var(--accent); color: white; padding: 15px; text-align: center; font-weight: 600; }
-      .btn-primary { background: var(--primary); color: white; border: none; padding: 12px 20px; border-radius: 10px; font-weight: 600; cursor: pointer; }
-      input, textarea, select { width: 100%; padding: 12px; margin: 8px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; }
+      .stat-num { display: block; font-size: 1.6rem; font-weight: 700; color: var(--primary); }
+      .stat-label { font-size: 0.8rem; color: var(--secondary); font-weight: 600; }
+      .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
+      .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 6px 14px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
+      .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 22px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; }
+      input, textarea, select { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+      h1 { font-size: 1.8rem; }
+      h3 { font-size: 1.3rem; }
     </style>
   </head>
   <body>
@@ -107,7 +118,7 @@ end
 get '/' do
   word = params[:search]
   html = header_menu + "<h1>最新の知恵</h1>"
-  html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{word}'><button type='submit' class='btn-primary' style='width:80px;'>検索</button></form>"
+  html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}'><button type='submit' class='btn-primary' style='width:100px;'>検索</button></form>"
   
   sql = "SELECT * FROM posts WHERE (parent_id = -1) "
   sql_params = []
@@ -120,18 +131,22 @@ get '/' do
   query(sql, sql_params) do |res|
     res.each do |row|
       cat_name = row['category'] || "その他独り言"
+      # ③ ハイライト適用
+      display_title = highlight(row['title'], word)
+      display_drug = highlight(row['drug_name'], word)
+      
       html += "
       <div class='post-card' style='padding: 20px;'>
         <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
           <div style='flex: 1;'>
             <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
-            <span style='color:var(--secondary); font-size:0.75rem;'>💊 #{row['drug_name']}</span>
-            <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
-            <p style='color:var(--secondary); font-size:0.8rem; margin:0;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at'].split(' ')[0]}</p>
+            <span style='color:var(--secondary); font-size:0.85rem;'>💊 #{display_drug}</span>
+            <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{display_title}</a></h3>
+            <p style='color:var(--secondary); font-size:0.9rem; margin:0;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at'].split(' ')[0]}</p>
           </div>
           <div style='text-align:right; margin-left:15px;'>
-            <div style='font-size:0.85rem; color:var(--secondary);'>👍 #{row['likes']}</div>
-            <div style='font-size:0.85rem; color:var(--star);'>⭐️ #{row['stars']}</div>
+            <div style='font-size:1rem; color:var(--secondary);'>👍 #{row['likes']}</div>
+            <div style='font-size:1rem; color:var(--star);'>⭐️ #{row['stars']}</div>
           </div>
         </div>
       </div>"
@@ -162,16 +177,16 @@ get '/post/:id' do
       <div class='post-card' style='margin-top:20px;'>
         <div style='display:flex; justify-content:space-between; align-items:center;'>
           <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
-          #{post['user_name'] == session[:user] ? "<a href='/post/#{post['id']}/edit' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>✏️ 編集する</a>" : ""}
+          #{post['user_name'] == session[:user] ? "<a href='/post/#{post['id']}/edit' style='font-size:0.9rem; color:var(--primary); text-decoration:none;'>✏️ 編集する</a>" : ""}
         </div>
-        <h1 style='margin:10px 0;'>#{post['title']}</h1>
-        <p style='color:var(--secondary); font-size:0.9rem;'>薬剤名: #{post['drug_name']} | 投稿者: #{post['user_name']}</p>
+        <h1 style='margin:10px 0;'>#{CGI.escapeHTML(post['title'])}</h1>
+        <p style='color:var(--secondary); font-size:1rem;'>薬剤名: #{CGI.escapeHTML(post['drug_name'])} | 投稿者: #{post['user_name']}</p>
         <hr style='border:0; border-top:1px solid #eee; margin:20px 0;'>"
     if post['image_path'] && post['image_path'] != ""
       html += "<div style='margin-bottom:20px;'><img src='/uploads/#{post['image_path']}' style='width:100%; border-radius:12px;'></div>"
     end
     html += "
-        <div style='white-space: pre-wrap; font-size:1.05rem;'>#{post['message']}</div>
+        <div style='white-space: pre-wrap; font-size:1.1rem;'>#{CGI.escapeHTML(post['message'])}</div>
         <div style='display:flex; gap:10px; margin-top:30px;'>
           <form action='/post/#{post['id']}/like' method='post'><button type='submit' class='#{l_class}'>👍 役に立った！ (#{post['likes']})</button></form>
           <form action='/post/#{post['id']}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post['stars']})</button></form>
@@ -180,7 +195,7 @@ get '/post/:id' do
     if post['user_name'] == session[:user]
       html += "
       <form action='/post/#{post['id']}/delete' method='post' style='margin-top:20px;' onsubmit='return confirm(\"本当に削除しますか？\");'>
-        <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.8rem; font-weight:600; padding:0;'>🗑️ この投稿を削除する</button>
+        <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.9rem; font-weight:600; padding:0;'>🗑️ この投稿を削除する</button>
       </form>"
     end
 
@@ -204,20 +219,20 @@ get '/post/:id' do
       <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
         <div style='display:flex; justify-content:space-between;'>
           <div>
-            <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.8rem;'>#{r['created_at']}</span>
+            <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.9rem;'>#{r['created_at']}</span>
           </div>
           <div style='display:flex; gap:10px;'>"
       if r['user_name'] == session[:user]
         html += "
-        <a href='/post/#{r['id']}/edit' style='font-size:0.7rem; color:var(--primary); text-decoration:none;'>編集</a>
+        <a href='/post/#{r['id']}/edit' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>編集</a>
         <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
-          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.7rem;'>削除</button>
+          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.8rem;'>削除</button>
         </form>"
       end
       html += "
           </div>
         </div>
-        <p>#{r['message']}</p>"
+        <p style='font-size:1rem;'>#{CGI.escapeHTML(r['message'])}</p>"
       html += "<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'> " if r['image_path'] && r['image_path'] != ""
       html += "</div>"
     end
@@ -233,7 +248,7 @@ get '/post/:id/edit' do
     if post && post['user_name'] == session[:user]
       html = header_menu + "<h1>投稿を編集</h1><div class='post-card'><form action='/post/#{post['id']}/update' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
       CATEGORIES.each { |name, color| html += "<option value='#{name}' #{'selected' if post['category'] == name}>#{name}</option>" }
-      html += "</select><input type='text' name='title' value='#{post['title']}' placeholder='表題' required><input type='text' name='drug_name' value='#{post['drug_name']}' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required>#{post['message']}</textarea><button type='submit' class='btn-primary'>更新する</button><a href='javascript:history.back()' style='display:block; text-align:center; margin-top:15px; color:var(--secondary); text-decoration:none; font-size:0.9rem;'>キャンセル</a></form></div></div>"
+      html += "</select><input type='text' name='title' value='#{CGI.escapeHTML(post['title'])}' placeholder='表題' required><input type='text' name='drug_name' value='#{CGI.escapeHTML(post['drug_name'])}' placeholder='薬剤名' required><textarea name='message' placeholder='内容を入力...' rows='10' required>#{CGI.escapeHTML(post['message'])}</textarea><button type='submit' class='btn-primary'>更新する</button><a href='javascript:history.back()' style='display:block; text-align:center; margin-top:15px; color:var(--secondary); text-decoration:none; font-size:1rem;'>キャンセル</a></form></div></div>"
       html
     else
       session[:notice] = "編集権限がありません。"
@@ -325,7 +340,7 @@ get '/profile' do
     
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
-        <div style='width:60px; height:60px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.5rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
+        <div style='width:70px; height:70px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
         <h3 style='margin:0;'>#{session[:user]} 先生</h3>
       </div>
       <div style='display:flex; gap:10px;'>
@@ -344,12 +359,12 @@ get '/profile' do
     <div class='post-card'>
       <h4>👤 プロフィール編集</h4>
       <form action='/update_profile' method='post'>
-        <label style='font-size:0.8rem;'>メールアドレス（投稿に必須）</label>
+        <label style='font-size:0.9rem;'>メールアドレス（投稿に必須）</label>
         <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
         <button type='submit' class='btn-primary' style='width:auto;'>保存する</button>
       </form>
       <div style='margin-top: 20px; text-align: center;'>
-        <a href='/logout' style='color: #e74c3c; font-size: 0.8rem; text-decoration: none;'>🚪 ログアウト</a>
+        <a href='/logout' style='color: #e74c3c; font-size: 0.9rem; text-decoration: none;'>🚪 ログアウト</a>
       </div>
     </div>
   </div>"
@@ -366,8 +381,8 @@ get '/my_posts' do
         html += "
         <div class='post-card' style='padding: 20px;'>
           <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
-          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
-          <p style='color:var(--secondary); font-size:0.8rem;'>📅 #{row['created_at']}</p>
+          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{CGI.escapeHTML(row['title'])}</a></h3>
+          <p style='color:var(--secondary); font-size:0.9rem;'>📅 #{row['created_at']}</p>
         </div>"
       end
     else
@@ -389,8 +404,8 @@ get '/my_favorites' do
         html += "
         <div class='post-card' style='padding: 20px;'>
           <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
-          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{row['title']}</a></h3>
-          <p style='color:var(--secondary); font-size:0.8rem;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at']}</p>
+          <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{CGI.escapeHTML(row['title'])}</a></h3>
+          <p style='color:var(--secondary); font-size:0.9rem;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at']}</p>
         </div>"
       end
     else
@@ -434,13 +449,13 @@ get '/login_page' do
     <div class='container' style='max-width: 500px;'>
       <div class='post-card'>
         <h2 style='text-align: center; color: var(--primary);'>🔑 PharmaShareへようこそ</h2>
-        <p style='font-size: 0.85rem; color: var(--secondary); text-align: center; margin-bottom: 30px;'>
+        <p style='font-size: 0.95rem; color: var(--secondary); text-align: center; margin-bottom: 30px;'>
           薬剤師の知恵を共有し、現場をより良くするコミュニティ
         </p>
 
         <div style='display: flex; border-bottom: 1px solid #d2d2d7; margin-bottom: 20px;'>
-          <button onclick='showAuth(\"login\")' id='tab-login' style='flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 2px solid var(--primary); cursor: pointer;'>ログイン</button>
-          <button onclick='showAuth(\"signup\")' id='tab-signup' style='flex: 1; padding: 10px; border: none; background: none; color: var(--secondary); cursor: pointer;'>新規登録</button>
+          <button onclick='showAuth(\"login\")' id='tab-login' style='flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 2px solid var(--primary); cursor: pointer; font-size: 1rem;'>ログイン</button>
+          <button onclick='showAuth(\"signup\")' id='tab-signup' style='flex: 1; padding: 10px; border: none; background: none; color: var(--secondary); cursor: pointer; font-size: 1rem;'>新規登録</button>
         </div>
 
         <form action='/auth' method='post' id='authForm'>
@@ -448,14 +463,14 @@ get '/login_page' do
           <input type='password' name='password' id='password' placeholder='パスワード' required>
           
           <div id='signup-extras' style='display: none; margin-top: 10px; padding: 15px; background: #fdfaf0; border-radius: 12px; border: 1px solid #faecc5;'>
-            <label style='font-size: 0.85rem; font-weight: bold; color: #856404;'>🌟 本登録のメリット</label>
-            <ul style='font-size: 0.75rem; color: #856404; margin: 8px 0; padding-left: 20px;'>
+            <label style='font-size: 0.95rem; font-weight: bold; color: #856404;'>🌟 本登録のメリット</label>
+            <ul style='font-size: 0.85rem; color: #856404; margin: 8px 0; padding-left: 20px;'>
               <li>知恵を投稿して仲間に共有できる</li>
               <li>「お気に入り」を保存して後で見返せる</li>
               <li>自分の投稿実績がマイページに残る</li>
             </ul>
             <input type='email' name='email' id='emailField' placeholder='メールアドレス（本登録用）'>
-            <p style='font-size: 0.7rem; color: var(--secondary); margin-top: 5px;'>※閲覧のみ（仮登録）の方は空欄でOKです</p>
+            <p style='font-size: 0.8rem; color: var(--secondary); margin-top: 5px;'>※閲覧のみ（仮登録）の方は空欄でOKです</p>
           </div>
 
           <input type='hidden' name='mode' id='submitMode' value='login'>
@@ -506,7 +521,6 @@ get '/login_page' do
           return;
         }
 
-        // 新規登録モードでメールがあれば 'full'、なければ 'guest'
         if (mode === 'signup') {
           document.getElementById('submitMode').value = (email.trim() !== '') ? 'full' : 'guest';
         }
@@ -556,7 +570,7 @@ get '/post_new' do
   redirect '/login_page' unless session[:user]
   html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
   CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
-  html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.8rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
+  html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.9rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
 end
 
 get '/robots.txt' do
