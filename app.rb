@@ -86,7 +86,7 @@ def header_menu
     <meta charset='UTF-8'>
     <meta name='google-site-verification' content='Se2VtZahtpBZH-XnXQg_alFiqWcxyz6ywgjswLJ5Cmc' />
     <title>PharmaShare - 薬剤師専用SNS｜現場の知恵と経験が集まる場所</title>
-    <meta name='description' content='インシデント事例、疑義照会、他職種連携から部下教育まで。教科書には載っていない「現場の正解」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、みんなで宝庫に変えていきましょう。'>
+    <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
       /* ② 文字サイズ全体を少し大きく修正 (16px -> 17px) */
