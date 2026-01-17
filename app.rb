@@ -76,6 +76,18 @@ def highlight(text, word)
   escaped_text.gsub(/(#{Regexp.escape(escaped_word)})/i, '<mark style="background-color: #ffef00; color: black; padding: 0 2px; border-radius: 4px;">\1</mark>')
 end
 
+# アイコンを表示するためのHTMLを生成するヘルパー
+def user_icon(u_name, i_path, size=50)
+  font_size = (size * 0.4).to_i
+  if i_path && i_path != ""
+    # 画像がある場合：object-fit:coverで、どんな縦横比の画像も綺麗に丸く切り抜くよ
+    "<img src='/uploads/#{i_path}' style='width:#{size}px; height:#{size}px; border-radius:50%; object-fit:cover; border:1px solid #eee;'>"
+  else
+    # 画像がない場合は一文字目
+    "<div style='width:#{size}px; height:#{size}px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:#{font_size}px; font-weight:700;'>#{u_name[0]}</div>"
+  end
+end
+
 # --- デザイン共通パーツ ---
 def header_menu
   user_status = if session[:user]
