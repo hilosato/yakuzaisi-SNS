@@ -36,6 +36,7 @@ def setup_db
   conn.exec "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS likes_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
   conn.exec "CREATE TABLE IF NOT EXISTS stars_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
+  conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS icon_path TEXT;"
 
   # 【ここが重要！】 bioカラムがなければ追加する命令
   conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;"
@@ -439,7 +440,11 @@ get '/profile' do
 
     <div class='post-card'>
       <h4>👤 プロフィール編集</h4>
-      <form action='/update_profile' method='post'>
+      <form action='/update_profile' method='post' enctype='multipart/form-data'>
+        
+        <label style='font-size:0.9rem;'>プロフィールアイコン</label>
+        <input type='file' name='icon_image' accept='image/*'>
+
         <label style='font-size:0.9rem;'>自己紹介（キャリアや得意分野など）</label>
         <textarea name='bio' placeholder='例：門前で5年勤務しています。漢方が得意です。' rows='4'>#{current_bio}</textarea>
         
@@ -503,9 +508,24 @@ end
 post '/update_profile' do
   redirect '/login_page' unless session[:user]
   
-  # emailだけでなく、bio（自己紹介）も一緒に保存するように修正！
-  query("UPDATE users SET email = $1, bio = $2 WHERE user_name = $3", 
-        [params[:email], params[:bio], session[:user]])
+  # --- アイコン画像の保存処理 ---
+  icon_filename = nil
+  if params[:icon_image] && params[:icon_image][:tempfile]
+    icon_filename = "icon_" + Time.now.to_i.to_s + "_" + params[:icon_image][:filename]
+    save_path = "./public/uploads/#{icon_filename}"
+    Dir.mkdir("./public/uploads") unless Dir.exist?("./public/uploads")
+    File.open(save_path, 'wb') { |f| f.write(params[:icon_image][:tempfile].read) }
+  end
+
+  if icon_filename
+    # 画像がある場合は、icon_pathも更新
+    query("UPDATE users SET email = $1, bio = $2, icon_path = $3 WHERE user_name = $4", 
+          [params[:email], params[:bio], icon_filename, session[:user]])
+  else
+    # 画像がない場合は、これまでの2つだけ更新
+    query("UPDATE users SET email = $1, bio = $2 WHERE user_name = $3", 
+          [params[:email], params[:bio], session[:user]])
+  end
         
   session[:notice] = "プロフィールを更新しました！"
   redirect '/profile'
