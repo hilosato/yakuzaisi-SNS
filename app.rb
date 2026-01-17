@@ -437,7 +437,9 @@ get '/profile' do
     
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
-        <div style='width:70px; height:70px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
+        <div style='display:flex; justify-content:center; margin-bottom:10px;'>
+          #{user_icon(session[:user], current_icon, 70)}
+       </div>
         <h3 style='margin:0;'>#{session[:user]} 先生</h3>
         <p><a href='/profile/#{session[:user]}' style='font-size:0.8rem; color:var(--primary);'>公開プロフィールを確認する</a></p>
       </div>
