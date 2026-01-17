@@ -354,6 +354,50 @@ post '/post/:id/delete' do
   end
 end
 
+# --- 公開プロフィールページ（他の人から見えるページ） ---
+get '/profile/:user_name' do
+  viewing_user = params[:user_name]
+  
+  user_data, post_count, total_likes, total_stars = nil, 0, 0, 0
+  query("SELECT * FROM users WHERE user_name = $1", [viewing_user]) { |res| user_data = res.first if res.any? }
+  
+  if user_data.nil?
+    return header_menu + "<h1>ユーザーが見つかりません</h1></div>"
+  end
+
+  query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [viewing_user]) { |res| post_count = res.first['count'] }
+  query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [viewing_user]) do |res| 
+    total_likes = res.first['l'] || 0
+    total_stars = res.first['s'] || 0
+  end
+
+  is_mine = (session[:user] == viewing_user)
+
+  html = header_menu + "
+    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>
+    <div class='post-card'>
+      <div style='text-align:center; margin-bottom:20px;'>
+        <div style='width:80px; height:80px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2rem; margin: 0 auto 15px; font-weight:700;'>#{viewing_user[0]}</div>
+        <div style='font-size:1.1rem; color:var(--text); white-space: pre-wrap; padding: 15px; background: #f9f9fb; border-radius: 12px; border: 1px solid #eee;'>#{CGI.escapeHTML(user_data['bio'].to_s == '' ? '自己紹介はまだありません。' : user_data['bio'])}</div>
+      </div>
+      <div style='display:flex; gap:10px;'>
+        <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
+        <div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div>
+        <div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div>
+      </div>
+    </div>
+    <div class='post-card'>
+      <h4>📝 #{viewing_user} 先生の最新投稿</h4>"
+  
+  query("SELECT * FROM posts WHERE user_name = $1 AND parent_id = -1 ORDER BY id DESC LIMIT 5", [viewing_user]) do |res|
+    res.each { |row| html += "<p style='border-bottom:1px solid #eee; padding:10px 0; margin:0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text); font-weight:500;'>#{CGI.escapeHTML(row['title'])}</a></p>" }
+  end
+
+  html += "</div>"
+  html += "<div style='text-align:center; margin-top:20px;'><a href='/profile' class='btn-primary' style='text-decoration:none;'>自分のマイページへ</a></div>" if is_mine
+  html + "</div>"
+end
+
 # --- マイページ（プロフィール） ---
 get '/profile' do
   redirect '/login_page' unless session[:user]
@@ -458,7 +502,11 @@ end
 
 post '/update_profile' do
   redirect '/login_page' unless session[:user]
-  query("UPDATE users SET email = $1 WHERE user_name = $2", [params[:email], session[:user]])
+  
+  # emailだけでなく、bio（自己紹介）も一緒に保存するように修正！
+  query("UPDATE users SET email = $1, bio = $2 WHERE user_name = $3", 
+        [params[:email], params[:bio], session[:user]])
+        
   session[:notice] = "プロフィールを更新しました！"
   redirect '/profile'
 end
