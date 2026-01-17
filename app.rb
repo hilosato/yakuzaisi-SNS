@@ -456,20 +456,34 @@ post '/auth' do
   user_name, password, email, mode = params[:user_name], params[:password], params[:email], params[:mode]
   user = nil
   query("SELECT * FROM users WHERE user_name = $1", [user_name]) { |res| user = res.first if res.any? }
-  if user
-    if BCrypt::Password.new(user['password_digest']) == password
-      session[:user] = user_name
-      redirect '/'
+
+  if mode == 'login'
+    # ログインモードの場合
+    if user
+      if BCrypt::Password.new(user['password_digest']) == password
+        session[:user] = user_name
+        redirect '/'
+      else
+        session[:notice] = "パスワードが間違っています。"
+        redirect '/login_page'
+      end
     else
-      session[:notice] = "パス間違い"
+      session[:notice] = "ユーザーが見つかりません。新規登録してください。"
       redirect '/login_page'
     end
   else
-    hash_pass = BCrypt::Password.create(password)
-    saved_email = (mode == 'full') ? email : nil
-    query("INSERT INTO users (user_name, password_digest, email) VALUES ($1, $2, $3)", [user_name, hash_pass, saved_email])
-    session[:user] = user_name
-    redirect '/'
+    # 新規登録モードの場合 (signup)
+    if user
+      # ★ ここでチェック！
+      session[:notice] = "「#{user_name}」はすでに登録されています。別の名前を試してください。"
+      redirect '/login_page'
+    else
+      hash_pass = BCrypt::Password.create(password)
+      saved_email = (mode == 'full') ? email : nil
+      query("INSERT INTO users (user_name, password_digest, email) VALUES ($1, $2, $3)", [user_name, hash_pass, saved_email])
+      session[:user] = user_name
+      redirect '/'
+    end
   end
 end
 
