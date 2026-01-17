@@ -117,21 +117,45 @@ end
 # --- ホーム画面 ---
 get '/' do
   word = params[:search]
+  selected_cat = params[:category] # 追加：カテゴリを受け取る
+  
   html = header_menu + "<h1>最新の知恵</h1>"
+  
+  # カテゴリ選択ボタンの表示
+  html += "<div style='margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px;'>"
+  html += "<a href='/' style='text-decoration:none; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; background: #{selected_cat ? 'white' : '#eee'}; color: #{selected_cat ? '#666' : 'black'}; font-weight: bold;'>すべて</a>"
+  CATEGORIES.each do |name, color|
+    is_active = (selected_cat == name)
+    bg_color = is_active ? color : "white"
+    text_color = is_active ? "white" : "#666"
+    html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
+  end
+  html += "</div>"
+
   html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}'><button type='submit' class='btn-primary' style='width:100px;'>検索</button></form>"
   
+  # DBクエリの組み立て
   sql = "SELECT * FROM posts WHERE (parent_id = -1) "
   sql_params = []
+  
+  # キーワード検索がある場合
   if word && word != ""
-    sql += "AND (title LIKE $1 OR drug_name LIKE $1 OR message LIKE $1) "
-    sql_params = ["%#{word}%"]
+    sql += "AND (title LIKE $#{sql_params.size + 1} OR drug_name LIKE $#{sql_params.size + 1} OR message LIKE $#{sql_params.size + 1}) "
+    sql_params << "%#{word}%"
   end
+  
+  # カテゴリ検索がある場合（追加）
+  if selected_cat && selected_cat != ""
+    sql += "AND (category = $#{sql_params.size + 1}) "
+    sql_params << selected_cat
+  end
+  
   sql += "ORDER BY id DESC"
 
   query(sql, sql_params) do |res|
+    # (以下、投稿表示のループ部分は今のコードと同じでOK！)
     res.each do |row|
       cat_name = row['category'] || "その他独り言"
-      # ③ ハイライト適用
       display_title = highlight(row['title'], word)
       display_drug = highlight(row['drug_name'], word)
       
