@@ -417,8 +417,9 @@ end
 get '/profile' do
   redirect '/login_page' unless session[:user]
   
-  current_email, current_bio, post_count, total_likes, total_stars = "", "", 0, 0, 0
-  query("SELECT email, bio FROM users WHERE user_name = $1", [session[:user]]) do |res| 
+  current_email, current_bio, current_icon, post_count, total_likes, total_stars = "", "", nil, 0, 0, 0
+  # SQLに icon_path を含める
+  query("SELECT email, bio, icon_path FROM users WHERE user_name = $1", [session[:user]]) do |res| 
     if res.any?
       current_email = res.first['email']
       current_bio = res.first['bio']
