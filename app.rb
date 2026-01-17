@@ -390,7 +390,9 @@ get '/profile/:user_name' do
     <h1 style='text-align:center;'>#{viewing_user} 先生</h1>
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
-        <div style='width:80px; height:80px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:2rem; margin: 0 auto 15px; font-weight:700;'>#{viewing_user[0]}</div>
+        <div style='display:flex; justify-content:center; margin-bottom:15px;'>
+          #{user_icon(viewing_user, user_data['icon_path'], 80)}
+        </div>
         <div style='font-size:1.1rem; color:var(--text); white-space: pre-wrap; padding: 15px; background: #f9f9fb; border-radius: 12px; border: 1px solid #eee;'>#{CGI.escapeHTML(user_data['bio'].to_s == '' ? '自己紹介はまだありません。' : user_data['bio'])}</div>
       </div>
       <div style='display:flex; gap:10px;'>
@@ -420,6 +422,7 @@ get '/profile' do
     if res.any?
       current_email = res.first['email']
       current_bio = res.first['bio']
+      current_icon = res.first['icon_path'] 
     end
   end
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
