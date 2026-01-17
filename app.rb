@@ -171,7 +171,9 @@ get '/' do
             <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
             <span style='color:var(--secondary); font-size:0.85rem;'>💊 #{display_drug}</span>
             <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{display_title}</a></h3>
-            <p style='color:var(--secondary); font-size:0.9rem; margin:0;'>👨‍⚕️ #{row['user_name']} | 📅 #{row['created_at'].split(' ')[0]}</p>
+            <p style='color:var(--secondary); font-size:0.9rem; margin:0;'>
+                  👨‍⚕️ <a href='/profile/#{row['user_name']}' style='text-decoration:none; color:var(--primary); font-weight:600;'>#{row['user_name']}</a> | 📅 #{row['created_at'].split(' ')[0]}
+            </p>
           </div>
           <div style='text-align:right; margin-left:15px;'>
             <div style='font-size:1rem; color:var(--secondary);'>👍 #{row['likes']}</div>
@@ -356,8 +358,13 @@ end
 get '/profile' do
   redirect '/login_page' unless session[:user]
   
-  current_email, post_count, total_likes, total_stars = "", 0, 0, 0
-  query("SELECT email FROM users WHERE user_name = $1", [session[:user]]) { |res| current_email = res.first['email'] if res.any? }
+  current_email, current_bio, post_count, total_likes, total_stars = "", "", 0, 0, 0
+  query("SELECT email, bio FROM users WHERE user_name = $1", [session[:user]]) do |res| 
+    if res.any?
+      current_email = res.first['email']
+      current_bio = res.first['bio']
+    end
+  end
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
   query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [session[:user]]) do |res| 
     total_likes = res.first['l'] || 0
@@ -371,6 +378,7 @@ get '/profile' do
       <div style='text-align:center; margin-bottom:20px;'>
         <div style='width:70px; height:70px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:1.8rem; margin: 0 auto 10px; font-weight:700;'>#{session[:user][0]}</div>
         <h3 style='margin:0;'>#{session[:user]} 先生</h3>
+        <p><a href='/profile/#{session[:user]}' style='font-size:0.8rem; color:var(--primary);'>公開プロフィールを確認する</a></p>
       </div>
       <div style='display:flex; gap:10px;'>
         <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
@@ -388,9 +396,13 @@ get '/profile' do
     <div class='post-card'>
       <h4>👤 プロフィール編集</h4>
       <form action='/update_profile' method='post'>
+        <label style='font-size:0.9rem;'>自己紹介（キャリアや得意分野など）</label>
+        <textarea name='bio' placeholder='例：門前で5年勤務しています。漢方が得意です。' rows='4'>#{current_bio}</textarea>
+        
         <label style='font-size:0.9rem;'>メールアドレス（投稿に必須）</label>
         <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
-        <button type='submit' class='btn-primary' style='width:auto;'>保存する</button>
+        
+        <button type='submit' class='btn-primary' style='width:auto; margin-top:10px;'>プロフィールを保存</button>
       </form>
       <div style='margin-top: 20px; text-align: center;'>
         <a href='/logout' style='color: #e74c3c; font-size: 0.9rem; text-decoration: none;'>🚪 ログアウト</a>
