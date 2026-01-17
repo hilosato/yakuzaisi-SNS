@@ -31,10 +31,15 @@ end
 # テーブル作成
 def setup_db
   conn = db_connection
+  # 既存のテーブル作成
   conn.exec "CREATE TABLE IF NOT EXISTS posts (id SERIAL PRIMARY KEY, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, stars INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS likes_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
   conn.exec "CREATE TABLE IF NOT EXISTS stars_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
+
+  # 【ここが重要！】 bioカラムがなければ追加する命令
+  conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;"
+  
   conn.close
 rescue => e
   puts "DB Setup Error: #{e.message}"
