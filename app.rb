@@ -125,7 +125,16 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
       .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
       .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 22px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; }
       input, textarea, select { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
-      .flash-notice { background: #32d74b; color: white; padding: 10px; text-align: center; font-weight: bold; }
+      .flash-notice { 
+       background: #ff3b30; /* 警告の赤色 */
+       color: white; 
+       padding: 20px; 
+       text-align: center; 
+       font-weight: 800; 
+       font-size: 1.2rem; /* 文字を大きく */
+       border-bottom: 4px solid #d70015; /* 下線でさらに強調 */
+       box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+      }
     </style>
   </head>
   <body>
