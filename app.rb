@@ -89,7 +89,10 @@ def user_icon(u_name, i_path, size=50)
 end
 
 # --- デザイン共通パーツ ---
-def header_menu
+def header_menu(page_title = nil)
+  # SEO対策：ページごとのタイトル設定
+  full_title = page_title ? "#{page_title} | PharmaShare" : "PharmaShare - 薬剤師専用SNS｜現場の知恵と経験が集まる場所"
+  
   user_status = if session[:user]
     "<a href='/post_new' class='nav-link'>✍️ 投稿</a> <a href='/profile' class='nav-link'>👤 マイページ</a> <a href='/logout' class='nav-link'>ログアウト</a>"
   else
@@ -97,36 +100,45 @@ def header_menu
   end
   flash_msg = session[:notice] ? "<div class='flash-notice'>#{session[:notice]}</div>" : ""
   session[:notice] = nil
+  
   "
   <!DOCTYPE html>
   <html lang='ja'>
   <head>
     <meta charset='UTF-8'>
     <meta name='google-site-verification' content='Se2VtZahtpBZH-XnXQg_alFiqWcxyz6ywgjswLJ5Cmc' />
-    <title>PharmaShare - 薬剤師専用SNS｜現場の知恵と経験が集まる場所</title>
+    <title>#{full_title}</title>
     <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
-      /* ② 文字サイズ全体を少し大きく修正 (16px -> 17px) */
       body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 17px; }
       .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-      nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 12px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-      .nav-brand { font-weight: 700; color: var(--primary); text-decoration: none; font-size: 1.3rem; }
+      nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
+      
+      /* ロゴ部分のデザイン修正 */
+      .nav-brand-group { display: flex; align-items: baseline; gap: 8px; text-decoration: none; }
+      .nav-brand { font-weight: 800; color: var(--primary); font-size: 1.8rem; letter-spacing: -0.5px; }
+      .nav-subtitle { font-size: 0.85rem; color: var(--secondary); font-weight: 600; }
+      
       .nav-link { color: var(--text); text-decoration: none; font-size: 1rem; margin-left: 15px; font-weight: 500; }
       .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-      .stat-box { background: #fbfbfd; padding: 15px; border-radius: 12px; text-align: center; flex: 1; border: 1px solid #d2d2d7; }
-      .stat-num { display: block; font-size: 1.6rem; font-weight: 700; color: var(--primary); }
-      .stat-label { font-size: 0.8rem; color: var(--secondary); font-weight: 600; }
       .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
-      .action-btn { background: none; border: 1px solid #d2d2d7; border-radius: 15px; padding: 6px 14px; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; gap: 4px; }
       .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 22px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; }
       input, textarea, select { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
-      h1 { font-size: 1.8rem; }
-      h3 { font-size: 1.3rem; }
+      .flash-notice { background: #32d74b; color: white; padding: 10px; text-align: center; font-weight: bold; }
     </style>
   </head>
   <body>
-    <nav><a href='/' class='nav-brand'>PharmaShare</a><div class='nav-links'><a href='/' class='nav-link'>🏠 ホーム</a>#{user_status}</div></nav>
+    <nav>
+      <a href='/' class='nav-brand-group'>
+        <span class='nav-brand'>PharmaShare</span>
+        <span class='nav-subtitle'>薬剤師専用SNS</span>
+      </a>
+      <div class='nav-links'>
+        <a href='/' class='nav-link'>🏠 ホーム</a>
+        #{user_status}
+      </div>
+    </nav>
     #{flash_msg}
     <div class='container'>
   "
