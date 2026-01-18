@@ -111,10 +111,29 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
     <title>#{full_title}</title> <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
-      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 17px; }
-      .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
-      nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
-      
+      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 19px; }
+      .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
+      nav { 
+        background: rgba(255, 255, 255, 0.8); 
+        backdrop-filter: blur(20px); 
+        padding: 10px 20px; /* 上下を少しスリムに */
+        display: flex; 
+        justify-content: center; /* 中央寄せに変更 */
+        border-bottom: 1px solid rgba(0,0,0,0.1); 
+        position: sticky; 
+        top: 0; 
+        z-index: 100; 
+      }
+
+      .nav-inner {
+        width: 100%;
+        max-width: 1000px;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+      }
+
+
       /* 左上のロゴを大きくするデザイン */
       .nav-brand-group { display: flex; align-items: baseline; gap: 8px; text-decoration: none; }
       .nav-brand { font-weight: 800; color: var(--primary); font-size: 1.8rem; letter-spacing: -0.5px; }
@@ -135,18 +154,23 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
        border-bottom: 4px solid #d70015; /* 下線でさらに強調 */
        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       }
+      .stat-num { font-size: 1.8rem; font-weight: 800; color: var(--primary); display: block; }
+      .stat-label { font-size: 0.9rem; color: var(--secondary); font-weight: 600; }
+      .stat-box { flex: 1; text-align: center; background: #f0f7ff; padding: 15px; border-radius: 14px; }
     </style>
   </head>
-  <body>
+<body>
     <nav>
-      <a href='/' class='nav-brand-group'>
-        <span class='nav-brand'>PharmaShare</span>
-        <span class='nav-subtitle'>薬剤師専用SNS</span>
-      </a>
-      <div class='nav-links'>
-        <a href='/' class='nav-link'>🏠 ホーム</a>
-        #{user_status}
-      </div>
+      <div class='nav-inner'> 
+        <a href='/' class='nav-brand-group'>
+          <span class='nav-brand'>PharmaShare</span>
+          <span class='nav-subtitle'>薬剤師専用SNS</span>
+        </a>
+        <div class='nav-links'>
+          <a href='/' class='nav-link'>🏠 ホーム</a>
+          #{user_status}
+        </div>
+      </div> 
     </nav>
     #{flash_msg}
     <div class='container'>
