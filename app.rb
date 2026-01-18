@@ -108,7 +108,7 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
     <meta charset='UTF-8'>
     <meta name='google-site-verification' content='Se2VtZahtpBZH-XnXQg_alFiqWcxyz6ywgjswLJ5Cmc' />
 
-    
+
     <title>#{full_title}</title> <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
@@ -117,15 +117,37 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
       nav { 
         background: rgba(255, 255, 255, 0.8); 
         backdrop-filter: blur(20px); 
-        padding: 10px 20px; /* 上下を少しスリムに */
+        padding: 25px 20px; /* 10pxから25pxに増やして、上下をガッツリ太くしたよ！ */
         display: flex; 
-        justify-content: center; /* 中央寄せに変更 */
-        border-bottom: 1px solid rgba(0,0,0,0.1); 
+        justify-content: center; 
+        border-bottom: 2px solid rgba(0,0,0,0.1); /* 境界線も少しハッキリ */
         position: sticky; 
         top: 0; 
         z-index: 100; 
       }
 
+      /* ロゴ周り：さらにドカンと大きく */
+      .nav-brand { 
+        font-weight: 800; 
+        color: var(--primary); 
+        font-size: 2.8rem; /* 2.2remから2.8remにアップ！ */
+        letter-spacing: -1px; 
+      }
+      
+      .nav-subtitle { 
+        font-size: 1.4rem; /* サブタイトルも存在感アップ */
+        color: var(--secondary); 
+        font-weight: 600; 
+      }
+
+      /* 右側のメニューボタンも大きく */
+      .nav-link { 
+        color: var(--text); 
+        text-decoration: none; 
+        font-size: 28px; /* 24pxから28pxにアップ！ */
+        margin-left: 25px; 
+        font-weight: 700; 
+      }
       .nav-inner {
         width: 100%;
         max-width: 1000px;
