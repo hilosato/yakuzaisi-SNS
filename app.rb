@@ -386,14 +386,24 @@ end
 # --- 公開プロフィールページ（他の人から見えるページ） ---
 get '/profile/:user_name' do
   viewing_user = params[:user_name]
-  # ... (中略) ...
+  
+  user_data, post_count, total_likes, total_stars = nil, 0, 0, 0
+  query("SELECT * FROM users WHERE user_name = $1", [viewing_user]) { |res| user_data = res.first if res.any? }
+  
   if user_data.nil?
-    return header_menu("ユーザー不明") + "<h1>ユーザーが見つかりません</h1></div>"
+    return header_menu + "<h1>ユーザーが見つかりません</h1></div>"
   end
-  # ... (中略) ...
-  # ここで「〇〇先生のプロフィール」と渡してあげる
-  html = header_menu("#{viewing_user} 先生のプロフィール") + "
-    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>"
+
+  query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [viewing_user]) { |res| post_count = res.first['count'] }
+  query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [viewing_user]) do |res| 
+    total_likes = res.first['l'] || 0
+    total_stars = res.first['s'] || 0
+  end
+
+  is_mine = (session[:user] == viewing_user)
+
+  html = header_menu + "
+    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
         <div style='display:flex; justify-content:center; margin-bottom:15px;'>
