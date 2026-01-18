@@ -187,6 +187,26 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
   h3 { font-size: 32px; }
   h4 { font-size: 28px; }
 
+
+/* --- スマホ（画面幅が768px以下）の時だけ適用される設定 --- */
+  @media (max-width: 768px) {
+    /* スマホでは文字をさらに大きく！ */
+    .nav-brand { font-size: 3.2rem !important; }
+    .nav-subtitle { font-size: 1.6rem !important; }
+    .nav-link { font-size: 32px !important; margin-left: 15px; }
+    
+    /* 投稿内容などもスマホではさらに読みやすく */
+    body { font-size: 28px; }
+    .btn-primary { font-size: 30px; padding: 20px; }
+    
+    /* スマホで横並びがキツい場合は縦に並べる（必要に応じて） */
+    .nav-inner {
+      flex-direction: column; /* ロゴとメニューを上下に分ける */
+      gap: 10px;
+    }
+  }
+
+
       </style>
   </head>
 <body>
