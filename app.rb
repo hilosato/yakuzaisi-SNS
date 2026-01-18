@@ -89,8 +89,8 @@ def user_icon(u_name, i_path, size=50)
 end
 
 # --- デザイン共通パーツ ---
-def header_menu(page_title = nil)
-  # SEO対策：ページごとのタイトル設定
+def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
+  # (2) タイトルがあれば「タイトル | PharmaShare」、なければデフォルトを表示
   full_title = page_title ? "#{page_title} | PharmaShare" : "PharmaShare - 薬剤師専用SNS｜現場の知恵と経験が集まる場所"
   
   user_status = if session[:user]
@@ -100,22 +100,22 @@ def header_menu(page_title = nil)
   end
   flash_msg = session[:notice] ? "<div class='flash-notice'>#{session[:notice]}</div>" : ""
   session[:notice] = nil
-  
+
   "
   <!DOCTYPE html>
   <html lang='ja'>
   <head>
     <meta charset='UTF-8'>
     <meta name='google-site-verification' content='Se2VtZahtpBZH-XnXQg_alFiqWcxyz6ywgjswLJ5Cmc' />
-    <title>#{full_title}</title>
-    <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
+    
+    <title>#{full_title}</title> <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
       body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 17px; }
       .container { max-width: 700px; margin: 0 auto; padding: 40px 20px; }
       nav { background: rgba(255, 255, 255, 0.8); backdrop-filter: blur(20px); padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid rgba(0,0,0,0.1); position: sticky; top: 0; z-index: 100; }
       
-      /* ロゴ部分のデザイン修正 */
+      /* 左上のロゴを大きくするデザイン */
       .nav-brand-group { display: flex; align-items: baseline; gap: 8px; text-decoration: none; }
       .nav-brand { font-weight: 800; color: var(--primary); font-size: 1.8rem; letter-spacing: -0.5px; }
       .nav-subtitle { font-size: 0.85rem; color: var(--secondary); font-weight: 600; }
@@ -147,9 +147,13 @@ end
 # --- ホーム画面 ---
 get '/' do
   word = params[:search]
-  selected_cat = params[:category] # 追加：カテゴリを受け取る
-  
-  html = header_menu + "<h1>最新の知恵</h1>"
+selected_cat = params[:category]
+
+# この1行を追加（タイトルの準備）
+title = word && word != "" ? "「#{word}」の検索結果" : nil
+
+# header_menu(title) に書き換え
+html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
   
   # カテゴリ選択ボタンの表示
   html += "<div style='margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px;'>"
@@ -216,7 +220,7 @@ get '/post/:id' do
   redirect '/login_page' unless session[:user]
   query("SELECT * FROM posts WHERE id = $1", [params[:id]]) do |res|
     post = res.first
-    return header_menu + "<p>投稿が見つかりませんでした。</p></div>" unless post
+    return header_menu("投稿が見つかりませんでした") + "<p>投稿が見つかりませんでした。</p></div>" unless post
     
     replies = []
     query("SELECT * FROM posts WHERE parent_id = $1 ORDER BY id ASC", [params[:id]]) { |r_res| replies = r_res.to_a }
@@ -229,7 +233,7 @@ get '/post/:id' do
     l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
     s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
     
-    html = header_menu + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
+    html = header_menu(post['title']) + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
       <div class='post-card' style='margin-top:20px;'>
         <div style='display:flex; justify-content:space-between; align-items:center;'>
           <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
@@ -382,24 +386,14 @@ end
 # --- 公開プロフィールページ（他の人から見えるページ） ---
 get '/profile/:user_name' do
   viewing_user = params[:user_name]
-  
-  user_data, post_count, total_likes, total_stars = nil, 0, 0, 0
-  query("SELECT * FROM users WHERE user_name = $1", [viewing_user]) { |res| user_data = res.first if res.any? }
-  
+  # ... (中略) ...
   if user_data.nil?
-    return header_menu + "<h1>ユーザーが見つかりません</h1></div>"
+    return header_menu("ユーザー不明") + "<h1>ユーザーが見つかりません</h1></div>"
   end
-
-  query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [viewing_user]) { |res| post_count = res.first['count'] }
-  query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [viewing_user]) do |res| 
-    total_likes = res.first['l'] || 0
-    total_stars = res.first['s'] || 0
-  end
-
-  is_mine = (session[:user] == viewing_user)
-
-  html = header_menu + "
-    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>
+  # ... (中略) ...
+  # ここで「〇〇先生のプロフィール」と渡してあげる
+  html = header_menu("#{viewing_user} 先生のプロフィール") + "
+    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>"
     <div class='post-card'>
       <div style='text-align:center; margin-bottom:20px;'>
         <div style='display:flex; justify-content:center; margin-bottom:15px;'>
