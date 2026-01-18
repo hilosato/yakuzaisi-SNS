@@ -107,11 +107,11 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
   <head>
     <meta charset='UTF-8'>
     <meta name='google-site-verification' content='Se2VtZahtpBZH-XnXQg_alFiqWcxyz6ywgjswLJ5Cmc' />
-    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>#{full_title}</title> <meta name='description' content='インシデント事例、疑義紹介、他職種連携から部下教育まで。教科書には載っていない「日常の忙しさに埋もれてしまう貴重な気づきと経験」を共有する薬剤師専用SNS。日々の業務に直結する知恵を、発信して共有しよう。'>
     <style>
       :root { --primary: #0071e3; --bg: #f5f5f7; --card: #ffffff; --text: #1d1d1f; --secondary: #86868b; --accent: #32d74b; --star: #ff9f0a; }
-      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 19px; }
+      body { font-family: -apple-system, sans-serif; margin: 0; background: var(--bg); color: var(--text); line-height: 1.6; font-size: 24px; }
       .container { max-width: 1000px; margin: 0 auto; padding: 40px 20px; }
       nav { 
         background: rgba(255, 255, 255, 0.8); 
@@ -135,29 +135,36 @@ def header_menu(page_title = nil) # (1) 引数 (page_title = nil) を追加！
 
 
       /* 左上のロゴを大きくするデザイン */
-      .nav-brand-group { display: flex; align-items: baseline; gap: 8px; text-decoration: none; }
-      .nav-brand { font-weight: 800; color: var(--primary); font-size: 1.8rem; letter-spacing: -0.5px; }
-      .nav-subtitle { font-size: 0.85rem; color: var(--secondary); font-weight: 600; }
+      .nav-brand-group { display: flex; align-items: baseline; gap: 12px; text-decoration: none; }
+      .nav-brand { font-weight: 800; color: var(--primary); font-size: 2.2rem; letter-spacing: -0.5px; }
+      .nav-subtitle { font-size: 1.2rem; color: var(--secondary); font-weight: 600; }
       
-      .nav-link { color: var(--text); text-decoration: none; font-size: 1rem; margin-left: 15px; font-weight: 500; }
-      .post-card { background: var(--card); padding: 24px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
-      .tag { padding: 4px 10px; border-radius: 6px; font-size: 0.75rem; font-weight: 700; color: white; margin-right: 8px; }
-      .btn-primary { background: var(--primary); color: white; border: none; padding: 14px 22px; border-radius: 10px; font-weight: 600; cursor: pointer; font-size: 1rem; }
-      input, textarea, select { width: 100%; padding: 14px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 10px; box-sizing: border-box; font-size: 1rem; }
+      .nav-link { color: var(--text); text-decoration: none; font-size: 24px; margin-left: 15px; font-weight: 500; }
+      .post-card { background: var(--card); padding: 30px; border-radius: 18px; margin-bottom: 12px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
+      .tag { padding: 6px 12px; border-radius: 8px; font-size: 20px; font-weight: 700; color: white; margin-right: 8px; }
+      .btn-primary { background: var(--primary); color: white; border: none; padding: 18px 30px; border-radius: 12px; font-weight: 600; cursor: pointer; font-size: 24px; }
+      input, textarea, select { width: 100%; padding: 18px; margin: 10px 0; border: 1px solid #d2d2d7; border-radius: 12px; box-sizing: border-box; font-size: 24px !important; }
       .flash-notice { 
        background: #ff3b30; /* 警告の赤色 */
        color: white; 
-       padding: 20px; 
+       padding: 25px; 
        text-align: center; 
        font-weight: 800; 
-       font-size: 1.2rem; /* 文字を大きく */
+       font-size: 28px; /* 文字を大きく */
        border-bottom: 4px solid #d70015; /* 下線でさらに強調 */
        box-shadow: 0 4px 10px rgba(0,0,0,0.1);
       }
-      .stat-num { font-size: 1.8rem; font-weight: 800; color: var(--primary); display: block; }
-      .stat-label { font-size: 0.9rem; color: var(--secondary); font-weight: 600; }
-      .stat-box { flex: 1; text-align: center; background: #f0f7ff; padding: 15px; border-radius: 14px; }
-    </style>
+
+
+      .stat-num { font-size: 2.5rem; font-weight: 800; color: var(--primary); display: block; line-height: 1; margin-bottom: 5px; }
+      .stat-label { font-size: 24px; color: var(--secondary); font-weight: 600; }
+      .stat-box { flex: 1; text-align: center; background: #f0f7ff; padding: 20px; border-radius: 16px; }
+
+  h1 { font-size: 42px; margin-bottom: 30px; }
+  h3 { font-size: 32px; }
+  h4 { font-size: 28px; }
+
+      </style>
   </head>
 <body>
     <nav>
