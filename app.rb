@@ -239,13 +239,13 @@ title = word && word != "" ? "「#{word}」の検索結果" : nil
 html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
   
   # カテゴリ選択ボタンの表示
-  html += "<div style='margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px;'>"
-  html += "<a href='/' style='text-decoration:none; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #ddd; background: #{selected_cat ? 'white' : '#eee'}; color: #{selected_cat ? '#666' : 'black'}; font-weight: bold;'>すべて</a>"
+  html += "<div style='margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 12px;'>"
+  html += "<a href='/' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #ddd; background: #{selected_cat ? 'white' : '#666'}; color: #{selected_cat ? '#666' : 'white'}; font-weight: bold;'>すべて</a>"
   CATEGORIES.each do |name, color|
     is_active = (selected_cat == name)
     bg_color = is_active ? color : "white"
-    text_color = is_active ? "white" : "#666"
-    html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 6px 12px; border-radius: 20px; font-size: 0.85rem; border: 1px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
+    text_color = is_active ? "white" : color # 未選択時は枠線の色と同じにして視認性アップ
+    html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
   end
   html += "</div>"
 
