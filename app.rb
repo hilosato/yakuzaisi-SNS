@@ -478,7 +478,7 @@ get '/profile/:user_name' do
   query("SELECT * FROM users WHERE user_name = $1", [viewing_user]) { |res| user_data = res.first if res.any? }
   
   if user_data.nil?
-    return header_menu + "<h1>ユーザーが見つかりません</h1></div>"
+    return header_menu("エラー") + "<div class='container'><h1>ユーザーが見つかりません</h1></div>"
   end
 
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [viewing_user]) { |res| post_count = res.first['count'] }
@@ -489,30 +489,51 @@ get '/profile/:user_name' do
 
   is_mine = (session[:user] == viewing_user)
 
-  html = header_menu + "
-    <h1 style='text-align:center;'>#{viewing_user} 先生</h1>
-    <div class='post-card'>
-      <div style='text-align:center; margin-bottom:20px;'>
-        <div style='display:flex; justify-content:center; margin-bottom:15px;'>
-          #{user_icon(viewing_user, user_data['icon_path'], 80)}
+  # ワイド幅1000pxのコンテナで包む
+  html = header_menu("#{viewing_user}先生") + "
+    <div class='container' style='max-width: 1000px;'>
+      <h1 style='text-align:center; font-size: 42px; margin-bottom: 30px;'>#{viewing_user} 先生</h1>
+      
+      <div class='post-card' style='padding: 40px;'>
+        <div style='text-align:center; margin-bottom:30px;'>
+          <div style='display:flex; justify-content:center; margin-bottom:20px;'>
+            #{user_icon(viewing_user, user_data['icon_path'], 120)} </div>
+          
+          <div style='font-size: 28px; color: var(--text); white-space: pre-wrap; padding: 30px; background: #f9f9fb; border-radius: 20px; border: 2px solid #eee; text-align: left; line-height: 1.6;'>
+            <label style='display: block; font-size: 22px; color: var(--secondary); font-weight: 800; margin-bottom: 10px;'>📝 自己紹介</label>
+            #{CGI.escapeHTML(user_data['bio'].to_s == '' ? '自己紹介はまだありません。' : user_data['bio'])}
+          </div>
         </div>
-        <div style='font-size:1.1rem; color:var(--text); white-space: pre-wrap; padding: 15px; background: #f9f9fb; border-radius: 12px; border: 1px solid #eee;'>#{CGI.escapeHTML(user_data['bio'].to_s == '' ? '自己紹介はまだありません。' : user_data['bio'])}</div>
+
+        <div style='display:flex; gap:20px;'>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{post_count}</span><span class='stat-label' style='font-size: 24px;'>投稿数</span></div>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{total_likes}</span><span class='stat-label' style='font-size: 24px;'>もらった👍</span></div>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{total_stars}</span><span class='stat-label' style='font-size: 24px;'>もらった⭐️</span></div>
+        </div>
       </div>
-      <div style='display:flex; gap:10px;'>
-        <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
-        <div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div>
-        <div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div>
-      </div>
-    </div>
-    <div class='post-card'>
-      <h4>📝 #{viewing_user} 先生の最新投稿</h4>"
+
+      <h2 style='font-size: 36px; margin: 40px 0 20px 10px;'>📝 最近の投稿</h2>
+  "
   
   query("SELECT * FROM posts WHERE user_name = $1 AND parent_id = -1 ORDER BY id DESC LIMIT 5", [viewing_user]) do |res|
-    res.each { |row| html += "<p style='border-bottom:1px solid #eee; padding:10px 0; margin:0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text); font-weight:500;'>#{CGI.escapeHTML(row['title'])}</a></p>" }
+    res.each do |row|
+      html += "
+      <div class='post-card' style='padding: 30px; margin-bottom: 20px;'>
+        <h3 style='font-size: 30px; margin-bottom: 10px;'>
+          <a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text); font-weight:800;'>#{CGI.escapeHTML(row['title'])}</a>
+        </h3>
+        <div style='color:var(--secondary); font-size: 22px;'>💊 #{CGI.escapeHTML(row['drug_name'])} | 📅 #{row['created_at'].split(' ')[0]}</div>
+      </div>"
+    end
   end
 
-  html += "</div>"
-  html += "<div style='text-align:center; margin-top:20px;'><a href='/profile' class='btn-primary' style='text-decoration:none;'>自分のマイページへ</a></div>" if is_mine
+  # 自分のページなら管理画面へのリンク、そうでなければタイムラインへのリンク
+  if is_mine
+    html += "<div style='text-align:center; margin-top:40px;'><a href='/profile' class='btn-primary' style='text-decoration:none; height: 80px; display: flex; align-items: center; justify-content: center; font-size: 28px; font-weight: 800;'>自分の管理画面へ戻る</a></div>"
+  else
+    html += "<div style='text-align:center; margin-top:40px;'><a href='/' style='font-size: 26px; color: var(--primary); text-decoration: none; font-weight: 700;'>← タイムラインに戻る</a></div>"
+  end
+
   html + "</div>"
 end
 
