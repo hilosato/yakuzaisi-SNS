@@ -277,19 +277,23 @@ html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
       display_drug = highlight(row['drug_name'], word)
       
       html += "
-      <div class='post-card' style='padding: 20px;'>
+      <div class='post-card' style='padding: 25px;'>
         <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
           <div style='flex: 1;'>
-            <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
-            <span style='color:var(--secondary); font-size:0.85rem;'>💊 #{display_drug}</span>
-            <h3 style='margin:10px 0;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{display_title}</a></h3>
-            <p style='color:var(--secondary); font-size:0.9rem; margin:0;'>
-                  👨‍⚕️ <a href='/profile/#{row['user_name']}' style='text-decoration:none; color:var(--primary); font-weight:600;'>#{row['user_name']}</a> | 📅 #{row['created_at'].split(' ')[0]}
+            <div style='margin-bottom: 12px;'>
+              <span class='tag' style='background:#{CATEGORIES[cat_name] || '#8e8e93'};'>#{cat_name}</span>
+            </div>
+            <div style='color:var(--secondary); font-size: 24px; font-weight: 700; margin-bottom: 10px;'>
+              💊 #{display_drug}
+            </div>
+            <h3 style='margin:10px 0; font-size: 30px;'><a href='/post/#{row['id']}' style='text-decoration:none; color:var(--text);'>#{display_title}</a></h3>
+            <p style='color:var(--secondary); font-size: 20px; margin: 10px 0 0 0;'>
+              👨‍⚕️ <a href='/profile/#{row['user_name']}' style='text-decoration:none; color:var(--primary); font-weight:600;'>#{row['user_name']}</a> | 📅 #{row['created_at'].split(' ')[0]}
             </p>
           </div>
-          <div style='text-align:right; margin-left:15px;'>
-            <div style='font-size:1rem; color:var(--secondary);'>👍 #{row['likes']}</div>
-            <div style='font-size:1rem; color:var(--star);'>⭐️ #{row['stars']}</div>
+          <div style='text-align:right; margin-left:20px; min-width: 100px;'>
+            <div style='font-size: 32px; font-weight: 800; color: var(--primary); margin-bottom: 10px;'>👍 #{row['likes']}</div>
+            <div style='font-size: 32px; font-weight: 800; color: var(--star);'>⭐️ #{row['stars']}</div>
           </div>
         </div>
       </div>"
