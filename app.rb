@@ -689,37 +689,41 @@ post '/auth' do
 end
 
 get '/login_page' do
-  header_menu + "
-    <div class='container' style='max-width: 500px;'>
-      <div class='post-card'>
-        <h2 style='text-align: center; color: var(--primary);'>🔑 PharmaShareへようこそ</h2>
-        <p style='font-size: 0.95rem; color: var(--secondary); text-align: center; margin-bottom: 30px;'>
+  # ヘッダーに「ログイン」とタイトルを表示
+  header_menu("ログイン") + "
+    <div class='container' style='max-width: 1000px;'> <div class='post-card' style='padding: 40px;'>
+        <h2 style='text-align: center; color: var(--primary); font-size: 42px; margin-bottom: 15px;'>🔑 PharmaShareへようこそ</h2>
+        <p style='font-size: 26px; color: var(--secondary); text-align: center; margin-bottom: 40px;'>
           薬剤師の知恵を共有し、現場をより良くするコミュニティ
         </p>
 
-        <div style='display: flex; border-bottom: 1px solid #d2d2d7; margin-bottom: 20px;'>
-          <button onclick='showAuth(\"login\")' id='tab-login' style='flex: 1; padding: 10px; border: none; background: none; font-weight: bold; border-bottom: 2px solid var(--primary); cursor: pointer; font-size: 1rem;'>ログイン</button>
-          <button onclick='showAuth(\"signup\")' id='tab-signup' style='flex: 1; padding: 10px; border: none; background: none; color: var(--secondary); cursor: pointer; font-size: 1rem;'>新規登録</button>
+        <div style='display: flex; border-bottom: 3px solid #d2d2d7; margin-bottom: 40px;'>
+          <button onclick='showAuth(\"login\")' id='tab-login' style='flex: 1; padding: 25px; border: none; background: none; font-weight: 800; border-bottom: 6px solid var(--primary); cursor: pointer; font-size: 32px; color: var(--text);'>ログイン</button>
+          <button onclick='showAuth(\"signup\")' id='tab-signup' style='flex: 1; padding: 25px; border: none; background: none; color: var(--secondary); cursor: pointer; font-size: 32px;'>新規登録</button>
         </div>
 
         <form action='/auth' method='post' id='authForm'>
-          <input type='text' name='user_name' id='userName' placeholder='ユーザー名' required>
-          <input type='password' name='password' id='password' placeholder='パスワード' required>
+          <div style='margin-bottom: 25px;'>
+            <input type='text' name='user_name' id='userName' placeholder='ユーザー名' required style='height: 90px; font-size: 30px !important;'>
+          </div>
+          <div style='margin-bottom: 25px;'>
+            <input type='password' name='password' id='password' placeholder='パスワード' required style='height: 90px; font-size: 30px !important;'>
+          </div>
           
-          <div id='signup-extras' style='display: none; margin-top: 10px; padding: 15px; background: #fdfaf0; border-radius: 12px; border: 1px solid #faecc5;'>
-            <label style='font-size: 0.95rem; font-weight: bold; color: #856404;'>🌟 本登録のメリット</label>
-            <ul style='font-size: 0.85rem; color: #856404; margin: 8px 0; padding-left: 20px;'>
+          <div id='signup-extras' style='display: none; margin-top: 20px; padding: 30px; background: #fdfaf0; border-radius: 20px; border: 3px solid #faecc5;'>
+            <label style='font-size: 28px; font-weight: 900; color: #856404; display: block; margin-bottom: 10px;'>🌟 本登録のメリット</label>
+            <ul style='font-size: 24px; color: #856404; margin: 15px 0; padding-left: 35px; line-height: 1.8;'>
               <li>知恵を投稿して仲間に共有できる</li>
               <li>「お気に入り」を保存して後で見返せる</li>
               <li>自分の投稿実績がマイページに残る</li>
             </ul>
-            <input type='email' name='email' id='emailField' placeholder='メールアドレス（本登録用）'>
-            <p style='font-size: 0.8rem; color: var(--secondary); margin-top: 5px;'>※閲覧のみ（仮登録）の方は空欄でOKです</p>
+            <input type='email' name='email' id='emailField' placeholder='メールアドレス（本登録用）' style='height: 90px; font-size: 30px !important; background: white;'>
+            <p style='font-size: 20px; color: var(--secondary); margin-top: 10px;'>※閲覧のみ（仮登録）の方は空欄でOKです</p>
           </div>
 
           <input type='hidden' name='mode' id='submitMode' value='login'>
           
-          <button type='button' id='main-btn' onclick='handleAuth()' class='btn-primary' style='width: 100%; margin-top: 20px;'>ログインする</button>
+          <button type='button' id='main-btn' onclick='handleAuth()' class='btn-primary' style='width: 100%; height: 100px; margin-top: 40px; font-size: 36px; font-weight: 900; border-radius: 16px;'>ログインする</button>
         </form>
       </div>
     </div>
@@ -735,8 +739,9 @@ get '/login_page' do
         if (mode === 'signup') {
           signupExtras.style.display = 'block';
           mainBtn.innerText = 'アカウントを作成する';
-          tabSignup.style.borderBottom = '2px solid var(--primary)';
-          tabSignup.style.fontWeight = 'bold';
+          // 切り替え時の線の太さを6pxに合わせて強調
+          tabSignup.style.borderBottom = '6px solid var(--primary)';
+          tabSignup.style.fontWeight = '800';
           tabSignup.style.color = 'var(--text)';
           tabLogin.style.borderBottom = 'none';
           tabLogin.style.fontWeight = 'normal';
@@ -745,8 +750,8 @@ get '/login_page' do
         } else {
           signupExtras.style.display = 'none';
           mainBtn.innerText = 'ログインする';
-          tabLogin.style.borderBottom = '2px solid var(--primary)';
-          tabLogin.style.fontWeight = 'bold';
+          tabLogin.style.borderBottom = '6px solid var(--primary)';
+          tabLogin.style.fontWeight = '800';
           tabLogin.style.color = 'var(--text)';
           tabSignup.style.borderBottom = 'none';
           tabSignup.style.fontWeight = 'normal';
