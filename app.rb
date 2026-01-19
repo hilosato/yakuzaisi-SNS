@@ -307,7 +307,7 @@ get '/post/:id' do
   redirect '/login_page' unless session[:user]
   query("SELECT * FROM posts WHERE id = $1", [params[:id]]) do |res|
     post = res.first
-    return header_menu("投稿が見つかりませんでした") + "<p>投稿が見つかりませんでした。</p></div>" unless post
+    return header_menu("投稿が見つかりませんでした") + "<div class='container'><h1>投稿が見つかりませんでした。</h1></div>" unless post
     
     replies = []
     query("SELECT * FROM posts WHERE parent_id = $1 ORDER BY id ASC", [params[:id]]) { |r_res| replies = r_res.to_a }
@@ -317,70 +317,93 @@ get '/post/:id' do
     query("SELECT id FROM likes_map WHERE user_name = $1 AND post_id = $2", [session[:user], post['id']]) { |r| is_liked = true if r.any? }
     query("SELECT id FROM stars_map WHERE user_name = $1 AND post_id = $2", [session[:user], post['id']]) { |r| is_starred = true if r.any? }
     
+    # ボタンの状態（アクティブなら色を変える）
     l_class = is_liked ? "action-btn like-btn active" : "action-btn like-btn"
     s_class = is_starred ? "action-btn star-btn active" : "action-btn star-btn"
     
-    html = header_menu(post['title']) + "<a href='/' style='text-decoration:none; color:var(--primary); font-weight:600;'>← 戻る</a>
-      <div class='post-card' style='margin-top:20px;'>
-        <div style='display:flex; justify-content:space-between; align-items:center;'>
-          <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'};'>#{post['category']}</span>
-          #{post['user_name'] == session[:user] ? "<a href='/post/#{post['id']}/edit' style='font-size:0.9rem; color:var(--primary); text-decoration:none;'>✏️ 編集する</a>" : ""}
+    html = header_menu(post['title']) + "
+    <div class='container' style='max-width: 1000px;'>
+      <a href='/' style='text-decoration:none; color:var(--primary); font-weight:800; font-size: 26px;'>← 戻る</a>
+      
+      <div class='post-card' style='margin-top:30px; padding: 40px;'>
+        <div style='display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;'>
+          <span class='tag' style='background:#{CATEGORIES[post['category']] || '#8e8e93'}; font-size: 22px; padding: 8px 20px;'>#{post['category']}</span>
+          #{post['user_name'] == session[:user] ? "<a href='/post/#{post['id']}/edit' style='font-size: 22px; color:var(--primary); text-decoration:none; font-weight: 800;'>✏️ 編集する</a>" : ""}
         </div>
-        <h1 style='margin:10px 0;'>#{CGI.escapeHTML(post['title'])}</h1>
-        <p style='color:var(--secondary); font-size:1rem;'>薬剤名: #{CGI.escapeHTML(post['drug_name'])} | 投稿者: #{post['user_name']}</p>
-        <hr style='border:0; border-top:1px solid #eee; margin:20px 0;'>"
-    if post['image_path'] && post['image_path'] != ""
-      html += "<div style='margin-bottom:20px;'><img src='/uploads/#{post['image_path']}' style='width:100%; border-radius:12px;'></div>"
-    end
-    html += "
-        <div style='white-space: pre-wrap; font-size:1.1rem;'>#{CGI.escapeHTML(post['message'])}</div>
-        <div style='display:flex; gap:10px; margin-top:30px;'>
-          <form action='/post/#{post['id']}/like' method='post'><button type='submit' class='#{l_class}'>👍 役に立った！ (#{post['likes']})</button></form>
-          <form action='/post/#{post['id']}/star' method='post'><button type='submit' class='#{s_class}'>⭐️ お気に入り (#{post['stars']})</button></form>
-        </div>"
-        
-    if post['user_name'] == session[:user]
-      html += "
-      <form action='/post/#{post['id']}/delete' method='post' style='margin-top:20px;' onsubmit='return confirm(\"本当に削除しますか？\");'>
-        <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.9rem; font-weight:600; padding:0;'>🗑️ この投稿を削除する</button>
-      </form>"
-    end
 
-    html += "
-        <div class='reply-form' style='margin-top:40px; padding-top:20px; border-top:1px solid #eee;'>
-          <h4>💬 コメント・返信</h4>
+        <div style='color:var(--secondary); font-size: 26px; font-weight: 700; margin-bottom: 15px;'>
+          💊 #{CGI.escapeHTML(post['drug_name'].to_s)}
+        </div>
+
+        <h1 style='margin:10px 0; font-size: 42px; line-height: 1.3;'>#{CGI.escapeHTML(post['title'])}</h1>
+        <p style='color:var(--secondary); font-size: 22px; margin-bottom: 30px;'>投稿者: #{post['user_name']} 先生</p>
+        
+        <hr style='border:0; border-top:2px solid #eee; margin:30px 0;'>
+
+        #{ (post['image_path'] && post['image_path'] != "") ? "<div style='margin-bottom:30px;'><img src='/uploads/#{post['image_path']}' style='width:100%; border-radius:15px; border:1px solid #ddd;'></div>" : "" }
+
+        <div style='white-space: pre-wrap; font-size: 28px; line-height: 1.8; color: var(--text);'>#{CGI.escapeHTML(post['message'])}</div>
+
+        <div style='display:flex; gap:20px; margin-top:40px;'>
+          <form action='/post/#{post['id']}/like' method='post' style='flex:1;'>
+            <button type='submit' class='#{l_class}' style='width:100%; height:80px; font-size: 26px; font-weight: 800;'>👍 役に立った！ (#{post['likes']})</button>
+          </form>
+          <form action='/post/#{post['id']}/star' method='post' style='flex:1;'>
+            <button type='submit' class='#{s_class}' style='width:100%; height:80px; font-size: 26px; font-weight: 800;'>⭐️ お気に入り (#{post['stars']})</button>
+          </form>
+        </div>
+        
+        #{post['user_name'] == session[:user] ? "
+          <form action='/post/#{post['id']}/delete' method='post' style='margin-top:30px; text-align: right;' onsubmit='return confirm(\"本当に削除しますか？\");'>
+            <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 22px; font-weight: 600;'>🗑️ この投稿を削除する</button>
+          </form>" : ""
+        }
+
+        <div class='reply-form' style='margin-top:50px; padding-top:40px; border-top:2px solid #eee;'>
+          <h4 style='font-size: 32px; margin-bottom: 25px;'>💬 コメント・返信</h4>
           <form action='/post' method='post' enctype='multipart/form-data'>
             <input type='hidden' name='parent_id' value='#{post['id']}'>
             <input type='hidden' name='category' value='#{post['category']}'>
             <input type='hidden' name='drug_name' value='#{post['drug_name']}'>
             <input type='hidden' name='title' value='Re: #{post['title']}'>
-            <textarea name='message' placeholder='返信を入力...' required></textarea>
-            <input type='file' name='image' accept='image/*'>
-            <button type='submit' class='btn-primary'>返信を送信</button>
+            
+            <textarea name='message' placeholder='返信を入力...' required style='font-size: 26px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; margin-bottom: 20px;' rows='4'></textarea>
+            
+            <div style='margin-bottom: 25px;'>
+              <label style='display:block; font-size: 20px; color: var(--secondary); margin-bottom: 10px;'>📸 画像を添付（任意）</label>
+              <input type='file' name='image' accept='image/*' style='font-size: 22px;'>
+            </div>
+            
+            <button type='submit' class='btn-primary' style='width: 100%; height: 90px; font-size: 32px; font-weight: 900;'>返信を送信</button>
           </form>
         </div>
       </div>"
     
+    # 返信のループ
     replies.each do |r| 
       html += "
-      <div class='post-card' style='margin-left: 30px; background:#fbfbfd;'>
-        <div style='display:flex; justify-content:space-between;'>
+      <div class='post-card' style='margin-left: 40px; background:#fbfbfd; padding: 30px; border-left: 10px solid #eee;'>
+        <div style='display:flex; justify-content:space-between; align-items: flex-start; margin-bottom: 15px;'>
           <div>
-            <strong>#{r['user_name']}</strong> <span style='color:var(--secondary); font-size:0.9rem;'>#{r['created_at']}</span>
+            <strong style='font-size: 24px;'>#{r['user_name']} 先生</strong> 
+            <span style='color:var(--secondary); font-size: 18px; margin-left: 10px;'>#{r['created_at']}</span>
           </div>
-          <div style='display:flex; gap:10px;'>"
+          <div style='display:flex; gap:15px;'>"
       if r['user_name'] == session[:user]
         html += "
-        <a href='/post/#{r['id']}/edit' style='font-size:0.8rem; color:var(--primary); text-decoration:none;'>編集</a>
+        <a href='/post/#{r['id']}/edit' style='font-size: 20px; color:var(--primary); text-decoration:none; font-weight: 700;'>編集</a>
         <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
-          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size:0.8rem;'>削除</button>
+          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 20px; font-weight: 700;'>削除</button>
         </form>"
       end
       html += "
           </div>
         </div>
-        <p style='font-size:1rem;'>#{CGI.escapeHTML(r['message'])}</p>"
-      html += "<img src='/uploads/#{r['image_path']}' style='max-width:200px; border-radius:8px; display:block;'> " if r['image_path'] && r['image_path'] != ""
+        <div style='font-size: 26px; line-height: 1.6; white-space: pre-wrap;'>#{CGI.escapeHTML(r['message'])}</div>"
+      
+      if r['image_path'] && r['image_path'] != ""
+        html += "<div style='margin-top:20px;'><img src='/uploads/#{r['image_path']}' style='max-width:100%; border-radius:12px; border:1px solid #ddd;'></div>"
+      end
       html += "</div>"
     end
     html + "</div>"
