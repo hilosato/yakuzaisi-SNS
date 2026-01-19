@@ -817,9 +817,59 @@ end
 
 get '/post_new' do
   redirect '/login_page' unless session[:user]
-  html = header_menu + "<h1>新しい知恵を共有</h1><div class='post-card'><form action='/post' method='post' enctype='multipart/form-data'><label>カテゴリ</label><select name='category'>"
+  
+  html = header_menu("新規投稿") + "
+    <div class='container' style='max-width: 1000px;'>
+      <h1 style='font-size: 42px; margin-bottom: 10px;'>✍️ 投稿、情報を発信する</h1>
+      
+      <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 20px; border-radius: 12px; margin-bottom: 30px;'>
+        <p style='color: #ff3b30; font-size: 26px; font-weight: 900; margin: 0; line-height: 1.4;'>
+          ⚠️禁忌事項⚠️<br>
+          個人や団体が特定される書き込みは絶対に禁忌です！プライバシーには細心の注意を払ってください。
+        </p>
+      </div>
+
+      <div class='post-card' style='padding: 40px;'>
+        <form action='/post' method='post' enctype='multipart/form-data'>
+          <input type='hidden' name='parent_id' value='-1'>
+
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>カテゴリ</label>
+            <select name='category' style='height: 80px; font-size: 28px !important; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px;'>
+  "
   CATEGORIES.each { |name, color| html += "<option value='#{name}'>#{name}</option>" }
-  html += "</select><input type='text' name='title' placeholder='表題（タイトル）' required><input type='text' name='drug_name' placeholder='薬剤名' required><label style='font-size:0.9rem; color:var(--secondary);'>📷 画像添付（任意）</label><input type='file' name='image' accept='image/*'><textarea name='message' placeholder='内容を入力...' rows='10' required></textarea><input type='hidden' name='parent_id' value='-1'><button type='submit' class='btn-primary'>投稿する</button></form></div></div>"
+  
+  html += "
+            </select>
+          </div>
+
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>表題（タイトル）</label>
+            <input type='text' name='title' placeholder='何についての気づきですか？' required style='height: 80px; font-size: 28px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
+          </div>
+
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>💊 薬剤名（任意）</label>
+            <input type='text' name='drug_name' placeholder='例：アムロジピン' style='height: 80px; font-size: 28px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
+          </div>
+
+          <div style='margin-bottom: 30px; padding: 25px; background: #f5f5f7; border-radius: 12px; border: 2px solid #d2d2d7;'>
+            <label style='font-size: 26px; font-weight: 800; color: var(--text); display: block; margin-bottom: 15px;'>📷 画像添付（任意）</label>
+            <input type='file' name='image' accept='image/*' style='font-size: 26px; width: 100%;'>
+          </div>
+
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>内容</label>
+            <textarea name='message' placeholder='日常の忙しさに埋もれてしまう貴重な経験を書き留めましょう...' rows='10' required style='font-size: 28px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; line-height: 1.5;'></textarea>
+          </div>
+
+          <button type='submit' class='btn-primary' style='width: 100%; height: 100px; font-size: 36px; font-weight: 900; border-radius: 18px;'>投稿する</button>
+          
+          <a href='/' style='display: block; text-align: center; margin-top: 30px; font-size: 26px; color: var(--secondary); text-decoration: none; font-weight: 600;'>キャンセルして戻る</a>
+        </form>
+      </div>
+    </div>
+  "
 end
 
 get '/robots.txt' do
