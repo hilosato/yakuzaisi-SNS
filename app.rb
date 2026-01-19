@@ -521,7 +521,7 @@ get '/profile' do
   redirect '/login_page' unless session[:user]
   
   current_email, current_bio, current_icon, post_count, total_likes, total_stars = "", "", nil, 0, 0, 0
-  # SQLに icon_path を含める
+  # ユーザー情報の取得
   query("SELECT email, bio, icon_path FROM users WHERE user_name = $1", [session[:user]]) do |res| 
     if res.any?
       current_email = res.first['email']
@@ -529,56 +529,76 @@ get '/profile' do
       current_icon = res.first['icon_path'] 
     end
   end
+  # 統計情報の取得
   query("SELECT COUNT(*) FROM posts WHERE user_name = $1 AND parent_id = -1", [session[:user]]) { |res| post_count = res.first['count'] }
   query("SELECT SUM(likes) as l, SUM(stars) as s FROM posts WHERE user_name = $1", [session[:user]]) do |res| 
     total_likes = res.first['l'] || 0
     total_stars = res.first['s'] || 0
   end
 
-  html = header_menu + "
-    <h1>マイページ</h1>
-    
-    <div class='post-card'>
-      <div style='text-align:center; margin-bottom:20px;'>
-        <div style='display:flex; justify-content:center; margin-bottom:10px;'>
-          #{user_icon(session[:user], current_icon, 70)}
-       </div>
-        <h3 style='margin:0;'>#{session[:user]} 先生</h3>
-        <p><a href='/profile/#{session[:user]}' style='font-size:0.8rem; color:var(--primary);'>公開プロフィールを確認する</a></p>
+  # ヘッダーに「マイページ」とタイトルを表示
+  html = header_menu("マイページ") + "
+    <div class='container' style='max-width: 1000px;'> <h1 style='font-size: 42px; margin-bottom: 30px;'>👤 マイページ</h1>
+      
+      <div class='post-card' style='padding: 40px;'>
+        <div style='text-align:center; margin-bottom: 30px;'>
+          <div style='display:flex; justify-content:center; margin-bottom:20px;'>
+            #{user_icon(session[:user], current_icon, 120)} </div>
+          <h3 style='margin:0; font-size: 38px;'>#{session[:user]} 先生</h3>
+          
+          <div style='margin-top: 25px;'>
+            <a href='/profile/#{session[:user]}' style='display: inline-block; padding: 15px 35px; background: #eef6ff; color: var(--primary); text-decoration: none; border-radius: 40px; font-size: 26px; font-weight: 800; border: 3px solid var(--primary);'>
+              🔍 公開プロフィールを確認する
+            </a>
+          </div>
+        </div>
+
+        <div style='background: #f9f9fb; padding: 30px; border-radius: 20px; border: 2px solid #eee; margin-bottom: 30px;'>
+          <label style='display: block; font-size: 22px; color: var(--secondary); font-weight: 800; margin-bottom: 15px;'>現在の自己紹介</label>
+          <div style='font-size: 28px; color: var(--text); white-space: pre-wrap; line-height: 1.6;'>#{CGI.escapeHTML(current_bio.to_s == '' ? '自己紹介はまだありません。' : current_bio)}</div>
+        </div>
+
+        <div style='display:flex; gap:20px;'>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{post_count}</span><span class='stat-label' style='font-size: 24px;'>投稿数</span></div>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{total_likes}</span><span class='stat-label' style='font-size: 24px;'>もらった👍</span></div>
+          <div class='stat-box' style='padding: 25px; flex: 1;'><span class='stat-num' style='font-size: 3.5rem;'>#{total_stars}</span><span class='stat-label' style='font-size: 24px;'>もらった⭐️</span></div>
+        </div>
       </div>
-      <div style='display:flex; gap:10px;'>
-        <div class='stat-box'><span class='stat-num'>#{post_count}</span><span class='stat-label'>投稿数</span></div>
-        <div class='stat-box'><span class='stat-num'>#{total_likes}</span><span class='stat-label'>もらった👍</span></div>
-        <div class='stat-box'><span class='stat-num'>#{total_stars}</span><span class='stat-label'>もらった⭐️</span></div>
+
+      <div class='post-card' style='display: flex; flex-direction: column; gap: 20px; padding: 40px;'>
+        <h4 style='font-size: 32px; margin: 0;'>🔍 コンテンツを確認する</h4>
+        <a href='/my_posts' class='btn-primary' style='text-decoration: none; text-align: center; background: #3498db; height: 85px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800;'>📝 自分の投稿一覧</a>
+        <a href='/my_favorites' class='btn-primary' style='text-decoration: none; text-align: center; background: var(--star); height: 85px; display: flex; align-items: center; justify-content: center; font-size: 30px; font-weight: 800;'>⭐️ お気に入りした投稿</a>
+      </div>
+
+      <div class='post-card' style='padding: 40px;'>
+        <h4 style='font-size: 32px; margin-bottom: 30px;'>👤 プロフィール編集</h4>
+        <form action='/update_profile' method='post' enctype='multipart/form-data'>
+          
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>プロフィールアイコン</label>
+            <input type='file' name='icon_image' accept='image/*' style='font-size: 26px; width: 100%;'>
+          </div>
+
+          <div style='margin-bottom: 30px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>自己紹介（キャリアや得意分野など）</label>
+            <textarea name='bio' placeholder='例：門前で5年勤務しています。漢方が得意です。' rows='4' style='font-size: 28px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; line-height: 1.5;'>#{current_bio}</textarea>
+          </div>
+          
+          <div style='margin-bottom: 35px;'>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>メールアドレス（投稿に必須）</label>
+            <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required style='height: 85px; font-size: 30px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
+          </div>
+          
+          <button type='submit' class='btn-primary' style='width: 100%; height: 100px; font-size: 34px; font-weight: 900; border-radius: 18px;'>プロフィールを保存</button>
+        </form>
+        
+        <div style='margin-top: 50px; text-align: center; border-top: 2px solid #eee; padding-top: 30px;'>
+          <a href='/logout' style='color: #e74c3c; font-size: 28px; font-weight: 900; text-decoration: none;'>🚪 ログアウト</a>
+        </div>
       </div>
     </div>
-
-    <div class='post-card' style='display: flex; flex-direction: column; gap: 10px;'>
-      <h4>🔍 コンテンツを確認する</h4>
-      <a href='/my_posts' class='btn-primary' style='text-decoration: none; text-align: center; background: #3498db;'>📝 自分の投稿一覧</a>
-      <a href='/my_favorites' class='btn-primary' style='text-decoration: none; text-align: center; background: var(--star);'>⭐️ お気に入りした投稿</a>
-    </div>
-
-    <div class='post-card'>
-      <h4>👤 プロフィール編集</h4>
-      <form action='/update_profile' method='post' enctype='multipart/form-data'>
-        
-        <label style='font-size:0.9rem;'>プロフィールアイコン</label>
-        <input type='file' name='icon_image' accept='image/*'>
-
-        <label style='font-size:0.9rem;'>自己紹介（キャリアや得意分野など）</label>
-        <textarea name='bio' placeholder='例：門前で5年勤務しています。漢方が得意です。' rows='4'>#{current_bio}</textarea>
-        
-        <label style='font-size:0.9rem;'>メールアドレス（投稿に必須）</label>
-        <input type='email' name='email' value='#{current_email}' placeholder='example@mail.com' required>
-        
-        <button type='submit' class='btn-primary' style='width:auto; margin-top:10px;'>プロフィールを保存</button>
-      </form>
-      <div style='margin-top: 20px; text-align: center;'>
-        <a href='/logout' style='color: #e74c3c; font-size: 0.9rem; text-decoration: none;'>🚪 ログアウト</a>
-      </div>
-    </div>
-  </div>"
+  "
 end
 
 # --- 自分の投稿一覧 ---
