@@ -706,40 +706,56 @@ get '/about' do
   html = header_menu("創設者の想い") + "
     <div class='container' style='max-width: 1000px;'>
       <div class='post-card' style='padding: 60px; line-height: 1.8;'>
-        <h1 style='font-size: 48px; color: var(--primary); text-align: center; margin-bottom: 50px;'>💡 PharmaShare に込めた想い</h1>
+        
+        <h1 style='font-size: 56px; color: var(--primary); text-align: center; margin-bottom: 50px; line-height: 1.2;'>
+          薬剤師はもっと<br>発信するべき！
+        </h1>
         
         <div style='font-size: 30px; color: var(--text);'>
           <p style='margin-bottom: 40px;'>
-            現場で働く薬剤師の皆さん、今日もお疲れ様です。
+            現場で働く薬剤師のみなさん、今日もお疲れ様です。
           </p>
           
           <p style='margin-bottom: 40px;'>
-            日々の業務の中で出会う、インシデント事例、疑義紹介、他職種との連携、そして部下の教育…。<br>
-            これらは、<strong>教科書には決して載っていない「生きた知恵」</strong>です。
+            日々の仕事で出会う、ヒヤリとした事例、疑義紹介、他職種とのやり取り、そして後輩へのアドバイス…。<br>
+            これらって、実は<strong>教科書には載っていない「生きた宝物」</strong>なんですよね。
           </p>
 
-          <p style='margin-bottom: 40px; background: #f0f7ff; padding: 30px; border-radius: 20px; border-left: 10px solid var(--primary); font-weight: 800;'>
-            「日常の忙しさに埋もれてしまう、貴重な気づきと経験を形に残したい」
+          <p style='margin-bottom: 40px; background: #f0f7ff; padding: 40px; border-radius: 25px; border-left: 12px solid var(--primary); font-weight: 800; color: var(--primary); font-size: 32px;'>
+            「日々の忙しさで消えてしまう、<br>大切な気づきや経験をカタチに残したい」
           </p>
 
           <p style='margin-bottom: 40px;'>
             そんな想いから、この <strong>PharmaShare</strong> は生まれました。<br>
-            一人ひとりの経験を共有することが、誰かの明日の業務を助け、ひいては患者さんの安心に繋がると信じています。
+            誰かの経験を知ることは、別の誰かの明日の業務を助け、巡り巡って患者さんの安心につながると信じています。
+          </p>
+
+          <p style='margin-bottom: 40px;'>
+            「事例報告」なんて聞くと、なんだか難しくて構えちゃいますよね。<br>
+            でも、ここでは<strong>「こんなことがあったから気をつけよう！」</strong>くらいの気軽な感じでOKです！
+          </p>
+
+          <p style='margin-bottom: 40px;'>
+            「あ、こんな小さなことでも疑義紹介していいんだ」って、誰かが一歩踏み出すきっかけになるような場所になれば嬉しいなと思っています。
+          </p>
+
+          <p style='margin-bottom: 40px;'>
+            医学的な根拠ももちろん大切。でも、今はまだ言葉にならない<strong>「薬剤師の独り言」</strong>だって、ここには集めたい。
           </p>
 
           <p style='margin-bottom: 60px;'>
-            あなたの小さな気づきを、ぜひここで発信してください。<br>
-            みんなで知恵を共有し、より良い薬剤師ライフを一緒に作っていきましょう！
+            今はただの独り言でも、それが集まれば、いつか薬剤師の職能をもっと輝かせる大きな波になるはず。<br>
+            あなたの小さな「気づき」、ぜひここで聞かせてくださいね。
           </p>
 
-          <div style='text-align: right;'>
+          <div style='text-align: right; border-top: 2px solid #eee; padding-top: 40px;'>
             <p style='font-size: 24px; color: var(--secondary); margin-bottom: 5px;'>PharmaShare 創設者</p>
-            <p style='font-size: 36px; font-weight: 900;'>かたばみ</p>
+            <p style='font-size: 40px; font-weight: 900;'>かたばみ</p>
           </div>
         </div>
 
-        <div style='text-align:center; margin-top: 60px; border-top: 2px solid #eee; padding-top: 40px;'>
-          <a href='/' class='btn-primary' style='text-decoration:none; display: inline-flex; align-items:center; justify-content:center; height: 80px; width: 300px; font-size: 28px;'>タイムラインへ</a>
+        <div style='text-align:center; margin-top: 60px;'>
+          <a href='/' class='btn-primary' style='text-decoration:none; display: inline-flex; align-items:center; justify-content:center; height: 90px; width: 350px; font-size: 32px; font-weight: 900;'>タイムラインへ戻る</a>
         </div>
       </div>
     </div>
