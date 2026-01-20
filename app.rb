@@ -248,8 +248,8 @@ html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
     html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
   end
   html += "</div>"
-　
-# --- 創設者メッセージへのリンクを追加 ---
+ 
+# --- 創設者メッセージへのリンクを追加（全角スペースを除去済） ---
   html += "
     <div style='margin: 10px 0 30px 0; text-align: right;'>
       <a href='/about' style='text-decoration: none; font-size: 24px; color: var(--primary); font-weight: 800; display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 20px; background: #fff; border-radius: 15px; border: 2px solid #eef6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.03);'>
