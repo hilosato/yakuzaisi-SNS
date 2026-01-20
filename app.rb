@@ -248,6 +248,17 @@ html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
     html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
   end
   html += "</div>"
+　
+# --- 創設者メッセージへのリンクを追加 ---
+  html += "
+    <div style='margin: 10px 0 30px 0; text-align: right;'>
+      <a href='/about' style='text-decoration: none; font-size: 24px; color: var(--primary); font-weight: 800; display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 20px; background: #fff; border-radius: 15px; border: 2px solid #eef6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.03);'>
+        <span style='background: var(--primary); color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 24px;'>💡</span>
+        <span>PharmaShareとは？（創設者のメッセージ）</span>
+      </a>
+    </div>
+  "
+
 
   html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}'><button type='submit' class='btn-primary' style='width:100px;'>検索</button></form>"
   
@@ -688,6 +699,52 @@ get '/my_favorites' do
     end
   end
   html + "</div>"
+end
+
+# --- 創設者からのメッセージ（紹介ページ） ---
+get '/about' do
+  html = header_menu("創設者の想い") + "
+    <div class='container' style='max-width: 1000px;'>
+      <div class='post-card' style='padding: 60px; line-height: 1.8;'>
+        <h1 style='font-size: 48px; color: var(--primary); text-align: center; margin-bottom: 50px;'>💡 PharmaShare に込めた想い</h1>
+        
+        <div style='font-size: 30px; color: var(--text);'>
+          <p style='margin-bottom: 40px;'>
+            現場で働く薬剤師の皆さん、今日もお疲れ様です。
+          </p>
+          
+          <p style='margin-bottom: 40px;'>
+            日々の業務の中で出会う、インシデント事例、疑義紹介、他職種との連携、そして部下の教育…。<br>
+            これらは、<strong>教科書には決して載っていない「生きた知恵」</strong>です。
+          </p>
+
+          <p style='margin-bottom: 40px; background: #f0f7ff; padding: 30px; border-radius: 20px; border-left: 10px solid var(--primary); font-weight: 800;'>
+            「日常の忙しさに埋もれてしまう、貴重な気づきと経験を形に残したい」
+          </p>
+
+          <p style='margin-bottom: 40px;'>
+            そんな想いから、この <strong>PharmaShare</strong> は生まれました。<br>
+            一人ひとりの経験を共有することが、誰かの明日の業務を助け、ひいては患者さんの安心に繋がると信じています。
+          </p>
+
+          <p style='margin-bottom: 60px;'>
+            あなたの小さな気づきを、ぜひここで発信してください。<br>
+            みんなで知恵を共有し、より良い薬剤師ライフを一緒に作っていきましょう！
+          </p>
+
+          <div style='text-align: right;'>
+            <p style='font-size: 24px; color: var(--secondary); margin-bottom: 5px;'>PharmaShare 創設者</p>
+            <p style='font-size: 36px; font-weight: 900;'>かたばみ</p>
+          </div>
+        </div>
+
+        <div style='text-align:center; margin-top: 60px; border-top: 2px solid #eee; padding-top: 40px;'>
+          <a href='/' class='btn-primary' style='text-decoration:none; display: inline-flex; align-items:center; justify-content:center; height: 80px; width: 300px; font-size: 28px;'>タイムラインへ</a>
+        </div>
+      </div>
+    </div>
+  "
+  html
 end
 
 post '/update_profile' do
