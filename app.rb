@@ -967,11 +967,13 @@ get '/post_new' do
     <div class='container' style='max-width: 1000px;'>
       <h1 style='font-size: 42px; margin-bottom: 10px;'>✍️ 投稿、情報を発信する</h1>
       
-      <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 20px; border-radius: 12px; margin-bottom: 30px;'>
-        <p style='color: #ff3b30; font-size: 26px; font-weight: 900; margin: 0; line-height: 1.4;'>
-          ⚠️禁忌事項⚠️<br>
-          個人や団体が特定される書き込みは絶対に禁忌です！プライバシーには細心の注意を払ってください。
-        </p>
+      <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 30px; border-radius: 18px; margin-bottom: 30px;'>
+        <h2 style='color: #ff3b30; font-size: 32px; font-weight: 900; margin-top: 0;'>⚠️ 注意事項 ⚠️</h2>
+        <ul style='color: #1d1d1f; font-size: 24px; font-weight: 700; line-height: 1.6; padding-left: 25px;'>
+          <li style='margin-bottom: 10px;'>① <strong>個人や団体が特定される書き込みは絶対に禁忌</strong>です！プライバシーには細心の注意を払ってください。</li>
+          <li style='margin-bottom: 10px;'>② <strong>単なる愚痴は書かない！</strong>薬剤師が発信する投稿であることを自覚してください。</li>
+          <li style='margin-bottom: 10px;'>③ 不適切な投稿は削除される可能性があり、さらに倫理観的に問題のあるサービスになってしまうなら<strong>即刻閉鎖</strong>します。</li>
+        </ul>
       </div>
 
       <div class='post-card' style='padding: 40px;'>
@@ -1008,7 +1010,14 @@ get '/post_new' do
             <textarea name='message' placeholder='日常の忙しさに埋もれてしまう貴重な経験を書き留めましょう...' rows='10' required style='font-size: 28px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; line-height: 1.5;'></textarea>
           </div>
 
-          <button type='submit' class='btn-primary' style='width: 100%; height: 100px; font-size: 36px; font-weight: 900; border-radius: 18px;'>投稿する</button>
+          <div style='margin: 40px 0; padding: 30px; background: #fff9e6; border-radius: 15px; border: 2px solid #ff9f0a; display: flex; align-items: center; gap: 20px;'>
+            <input type='checkbox' id='agree' required style='width: 40px; height: 40px; margin: 0; cursor: pointer;'>
+            <label for='agree' style='font-size: 28px; font-weight: 900; color: #1d1d1f; cursor: pointer;'>
+              上記①から③を確認し、遵守することを誓います
+            </label>
+          </div>
+
+          <button type='submit' class='btn-primary' style='width: 100%; height: 100px; font-size: 36px; font-weight: 900; border-radius: 18px;'>同意して投稿する</button>
           
           <a href='/' style='display: block; text-align: center; margin-top: 30px; font-size: 26px; color: var(--secondary); text-decoration: none; font-weight: 600;'>キャンセルして戻る</a>
         </form>
