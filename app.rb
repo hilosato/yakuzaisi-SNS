@@ -713,12 +713,12 @@ get '/about' do
         
         <div style='font-size: 30px; color: var(--text);'>
           <p style='margin-bottom: 40px;'>
-            現場で働く薬剤師のみなさん、今日もお疲れ様です。
+            現場で働く薬剤師の皆様、今日も本当にお疲れ様です。
           </p>
           
           <p style='margin-bottom: 40px;'>
-            日々の仕事で出会う、ヒヤリとした事例、疑義紹介、他職種とのやり取り、そして後輩へのアドバイス…。<br>
-            これらって、実は<strong>教科書には載っていない「生きた宝物」</strong>なんですよね。
+            日々の仕事で出会う、ヒヤリとした事例、疑義紹介、他職種とのやり取り、そして誰にも言わないけどちょっとした気づき…。<br>
+            これらは実は教科書には載っていない<strong>「生きた宝物」</strong>だと思います。
           </p>
 
           <p style='margin-bottom: 40px; background: #f0f7ff; padding: 40px; border-radius: 25px; border-left: 12px solid var(--primary); font-weight: 800; color: var(--primary); font-size: 32px;'>
@@ -727,12 +727,12 @@ get '/about' do
 
           <p style='margin-bottom: 40px;'>
             そんな想いから、この <strong>PharmaShare</strong> は生まれました。<br>
-            誰かの経験を知ることは、別の誰かの明日の業務を助け、巡り巡って患者さんの安心につながると信じています。
+            誰かの経験を知ることは、別の誰かの明日の業務を助け、巡り巡って薬剤師全体の財産になると信じています。
           </p>
 
           <p style='margin-bottom: 40px;'>
             「事例報告」なんて聞くと、なんだか難しくて構えちゃいますよね。<br>
-            でも、ここでは<strong>「こんなことがあったから気をつけよう！」</strong>くらいの気軽な感じでOKです！
+            でも、ここでは<strong>「こんなことがあったから気をつけよう！」「こうすればミスがへらせるんじゃないかな」</strong>くらいの気軽な感じでOKです！
           </p>
 
           <p style='margin-bottom: 40px;'>
@@ -740,16 +740,24 @@ get '/about' do
           </p>
 
           <p style='margin-bottom: 40px;'>
-            医学的な根拠ももちろん大切。でも、今はまだ言葉にならない<strong>「薬剤師の独り言」</strong>だって、ここには集めたい。
+            医学的、薬学的な根拠ももちろん大切です。あるに越したことはない。でも今はまだ言葉にならない<strong>「薬剤師の独り言」</strong>だって、ここには集めたい。
           </p>
 
-          <p style='margin-bottom: 60px;'>
-            今はただの独り言でも、それが集まれば、いつか薬剤師の職能をもっと輝かせる大きな波になるはず。<br>
-            あなたの小さな「気づき」、ぜひここで聞かせてくださいね。
+          <p style='margin-bottom: 40px;'>
+            今はただの独り言でも、それが集まれば、いつか薬剤師の職能をもっと活かせる大きな波になるはず。
+          </p>
+
+          <p style='margin-bottom: 40px;'>
+            あなたの小さな「気づき」、ぜひここに残してください。<br>
+            そして自分でも真似できるものを一つ探してみてください。
+          </p>
+
+          <p style='margin-bottom: 60px; font-weight: 800; color: var(--primary); text-align: center; font-size: 34px;'>
+            あなたの明日が、新しい一歩を踏み出せる<br>1日でありますように。
           </p>
 
           <div style='text-align: right; border-top: 2px solid #eee; padding-top: 40px;'>
-            <p style='font-size: 24px; color: var(--secondary); margin-bottom: 5px;'>PharmaShare 創設者</p>
+            <p style='font-size: 24px; color: var(--secondary); margin-bottom: 5px;'>PharmaShare 管理人</p>
             <p style='font-size: 40px; font-weight: 900;'>かたばみ</p>
           </div>
         </div>
