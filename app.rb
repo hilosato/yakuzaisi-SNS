@@ -236,7 +236,7 @@ selected_cat = params[:category]
 title = word && word != "" ? "「#{word}」の検索結果" : nil
 
 # header_menu(title) に書き換え
-html = header_menu(title) + "<h1>みんなの投稿一覧</h1>"
+html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
   
   # カテゴリ選択ボタンの表示
   html += "<div style='margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 12px;'>"
@@ -965,15 +965,29 @@ get '/post_new' do
   
   html = header_menu("新規投稿") + "
     <div class='container' style='max-width: 1000px;'>
-      <h1 style='font-size: 42px; margin-bottom: 10px;'>✍️ 投稿、情報を発信する</h1>
+      <h1 style='font-size: 42px; margin-bottom: 10px;'>✍️ 知恵を共有し、研鑽する</h1>
       
-      <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 30px; border-radius: 18px; margin-bottom: 30px;'>
-        <h2 style='color: #ff3b30; font-size: 32px; font-weight: 900; margin-top: 0;'>⚠️ 注意事項 ⚠️</h2>
-        <ul style='color: #1d1d1f; font-size: 24px; font-weight: 700; line-height: 1.6; padding-left: 25px;'>
-          <li style='margin-bottom: 10px;'>① <strong>個人や団体が特定される書き込みは絶対に禁忌</strong>です！プライバシーには細心の注意を払ってください。</li>
-          <li style='margin-bottom: 10px;'>② <strong>単なる愚痴は書かない！</strong>薬剤師が発信する投稿であることを自覚してください。</li>
-          <li style='margin-bottom: 10px;'>③ 不適切な投稿は削除される可能性があり、さらに倫理観的に問題のあるサービスになってしまうなら<strong>即刻閉鎖</strong>します。</li>
-        </ul>
+      <div style='background: #fff5f5; border: 4px solid #ff3b30; padding: 35px; border-radius: 18px; margin-bottom: 30px;'>
+        <h2 style='color: #ff3b30; font-size: 36px; font-weight: 900; margin-top: 0; text-align: center;'>⚠️ 投稿に関する鉄則 ⚠️</h2>
+        <div style='color: #1d1d1f; font-size: 24px; font-weight: 700; line-height: 1.7;'>
+          <p style='margin-bottom: 20px; border-bottom: 2px solid #ff3b30; padding-bottom: 10px;'>
+            本SNSは薬剤師の職能向上を目的とした聖域です。以下の遵守を求めます。
+          </p>
+          <ul style='padding-left: 25px;'>
+            <li style='margin-bottom: 15px;'>
+              <strong>① 個人・団体の特定排除（厳守）</strong><br>
+              患者イニシャル、特定可能な疾患、地域、薬局名、ドクター名等は一切禁止。複数の情報の組み合わせで個人の特定を招く「モザイクアプローチ」にも細心の注意を払うこと。
+            </li>
+            <li style='margin-bottom: 15px;'>
+              <strong>② 建設的な「知恵」の共有</strong><br>
+              単なる感情的な愚痴は不要です。現場で得た気づきに対し「次からどう動くか」「他者がどう応用できるか」というプロの視点を必ず含めてください。
+            </li>
+            <li style='margin-bottom: 15px;'>
+              <strong>③ 医療倫理と品格の保持</strong><br>
+              患者や他職種への敬意を欠く表現は禁止。倫理観を損なう投稿が散見される場合、管理者権限により事前の通告なく投稿削除、あるいは本サービスを即刻閉鎖します。
+            </li>
+          </ul>
+        </div>
       </div>
 
       <div class='post-card' style='padding: 40px;'>
@@ -992,40 +1006,39 @@ get '/post_new' do
 
           <div style='margin-bottom: 30px;'>
             <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>表題（タイトル）</label>
-            <input type='text' name='title' placeholder='何についての気づきですか？' required style='height: 80px; font-size: 28px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
+            <input type='text' name='title' placeholder='共有すべき「気づき」の要約' required style='height: 80px; font-size: 28px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
           </div>
 
           <div style='margin-bottom: 30px;'>
-            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>💊 薬剤名（任意）</label>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>💊 関連薬剤名（任意）</label>
             <input type='text' name='drug_name' placeholder='例：アムロジピン' style='height: 80px; font-size: 28px !important; width: 100%; border-radius: 12px; border: 2px solid #d2d2d7; padding: 0 15px;'>
           </div>
 
           <div style='margin-bottom: 30px; padding: 25px; background: #f5f5f7; border-radius: 12px; border: 2px solid #d2d2d7;'>
-            <label style='font-size: 26px; font-weight: 800; color: var(--text); display: block; margin-bottom: 15px;'>📷 画像添付（任意）</label>
+            <label style='font-size: 26px; font-weight: 800; color: var(--text); display: block; margin-bottom: 15px;'>📷 資料・画像添付（任意）</label>
             <input type='file' name='image' accept='image/*' style='font-size: 26px; width: 100%;'>
           </div>
 
           <div style='margin-bottom: 30px;'>
-            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>内容</label>
-            <textarea name='message' placeholder='日常の忙しさに埋もれてしまう貴重な経験を書き留めましょう...' rows='10' required style='font-size: 28px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; line-height: 1.5;'></textarea>
+            <label style='font-size: 24px; font-weight: 800; color: var(--secondary); display: block; margin-bottom: 10px;'>内容（経緯・気づき・今後の対策）</label>
+            <textarea name='message' placeholder='「日常の忙しさに埋もれてしまう貴重な経験」を言語化してください。' rows='10' required style='font-size: 28px !important; padding: 20px; border: 2px solid #d2d2d7; width: 100%; border-radius: 12px; line-height: 1.5;'></textarea>
           </div>
 
-          <div style='margin: 40px 0; padding: 30px; background: #fff9e6; border-radius: 15px; border: 2px solid #ff9f0a; display: flex; align-items: center; gap: 20px;'>
-            <input type='checkbox' id='agree' required style='width: 40px; height: 40px; margin: 0; cursor: pointer;'>
+          <div style='margin: 40px 0; padding: 30px; background: #fff9e6; border-radius: 15px; border: 3px solid #ff9f0a; display: flex; align-items: center; gap: 20px;'>
+            <input type='checkbox' id='agree' required style='width: 45px; height: 45px; margin: 0; cursor: pointer;'>
             <label for='agree' style='font-size: 28px; font-weight: 900; color: #1d1d1f; cursor: pointer;'>
-              上記①から③を確認し、遵守することを誓います
+              私はプロの薬剤師として、上記鉄則を遵守することを誓います
             </label>
           </div>
 
-          <button type='submit' class='btn-primary' style='width: 100%; height: 100px; font-size: 36px; font-weight: 900; border-radius: 18px;'>同意して投稿する</button>
+          <button type='submit' class='btn-primary' style='width: 100%; height: 110px; font-size: 38px; font-weight: 900; border-radius: 18px;'>規約に同意して発信する</button>
           
-          <a href='/' style='display: block; text-align: center; margin-top: 30px; font-size: 26px; color: var(--secondary); text-decoration: none; font-weight: 600;'>キャンセルして戻る</a>
+          <a href='/' style='display: block; text-align: center; margin-top: 30px; font-size: 26px; color: var(--secondary); text-decoration: none; font-weight: 600;'>キャンセル</a>
         </form>
       </div>
     </div>
   "
 end
-
 get '/robots.txt' do
   content_type 'text/plain'
   "User-agent: *\nAllow: /"
