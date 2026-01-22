@@ -363,6 +363,14 @@ get '/post/:id' do
             <button type='submit' class='#{s_class}' style='width:100%; height:80px; font-size: 26px; font-weight: 800;'>⭐️ お気に入り (#{post['stars']})</button>
           </form>
         </div>
+
+        <div style='margin-top: 25px; text-align: center;'>
+          <form action='/post/#{post['id']}/report' method='post' onsubmit='return confirm(\"この投稿を不適切として通報しますか？\n（管理人が内容を確認します）\");'>
+            <button type='submit' style='background: none; border: none; color: #8e8e93; cursor: pointer; font-size: 22px; font-weight: 600; text-decoration: underline; display: inline-flex; align-items: center; gap: 8px;'>
+              <span>🚩</span> 規約違反・不適切な投稿を通報する
+            </button>
+          </form>
+        </div>
         
         #{post['user_name'] == session[:user] ? "
           <form action='/post/#{post['id']}/delete' method='post' style='margin-top:30px; text-align: right;' onsubmit='return confirm(\"本当に削除しますか？\");'>
