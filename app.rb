@@ -281,14 +281,27 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
   sql += "ORDER BY id DESC"
 
   query(sql, sql_params) do |res|
-    # (以下、投稿表示のループ部分は今のコードと同じでOK！)
     res.each do |row|
       cat_name = row['category'] || "その他独り言"
       display_title = highlight(row['title'], word)
       display_drug = highlight(row['drug_name'], word)
       
+      # 1. 投稿カードの開始（ここを1回だけにする！）
+      html += "<div class='post-card' style='padding: 25px; margin-bottom: 20px;'>"
+      
+      # 2. 管理人への通報警告
+      if session[:user] == "かたばみ" && row['reports'].to_i > 0
+        html += "
+          <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 20px; border-radius: 12px; margin-bottom: 25px;'>
+            <p style='color: #ff3b30; font-size: 26px; font-weight: 900; margin: 0; display: flex; align-items: center; gap: 10px;'>
+              <span>🚩</span> 通報が #{row['reports']} 件届いています
+            </p>
+          </div>
+        "
+      end
+
+      # 3. カードの中身（ここで再度 <div class='post-card'> を書かない！）
       html += "
-      <div class='post-card' style='padding: 25px;'>
         <div style='display:flex; justify-content:space-between; align-items:flex-start;'>
           <div style='flex: 1;'>
             <div style='margin-bottom: 12px;'>
@@ -307,7 +320,7 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
             <div style='font-size: 32px; font-weight: 800; color: var(--star);'>⭐️ #{row['stars']}</div>
           </div>
         </div>
-      </div>"
+      </div>" # 最後にしっかりカードを閉じる
     end
   end
   html + "</div>"
@@ -1050,4 +1063,15 @@ end
 get '/robots.txt' do
   content_type 'text/plain'
   "User-agent: *\nAllow: /"
+end
+
+
+post '/post/:id/report' do
+  redirect '/login_page' unless session[:user]
+  
+  # 通報数を+1するSQL
+  db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [params[:id]])
+  
+  # 元のページに戻ってメッセージを出す（本当はもっと丁寧にやりたいけど、まずはこれで！）
+  "<script>alert('通報を受理しました。管理人が内容を確認いたします。'); window.location.href='/post/#{params[:id]}';</script>"
 end
