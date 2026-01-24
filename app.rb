@@ -502,21 +502,25 @@ post '/post' do
     return
   end
 
-  image_filename = ""
+  image_url = "" # 変数名を分かりやすく url に変更
   if params[:image] && params[:image][:tempfile]
-    image_filename = Time.now.to_i.to_s + "_" + params[:image][:filename]
-    save_path = "./public/uploads/#{image_filename}"
-    Dir.mkdir("./public/uploads") unless Dir.exist?("./public/uploads")
-    File.open(save_path, 'wb') { |f| f.write(params[:image][:tempfile].read) }
+    # Cloudinaryへアップロード
+    upload = Cloudinary::Uploader.upload(params[:image][:tempfile].path)
+    # ログにCloudinaryからの返答を全部出す
+    puts "--- Cloudinary Response ---"
+    p upload
+    puts "---------------------------"
+    image_url = upload['secure_url'] || upload['url'] # 万が一 secure_url がなくても url を取る
   end
 
   jst_time = Time.now.getlocal('+09:00').strftime('%Y/%m/%d %H:%M')
   p_id = params[:parent_id].to_i
   
   query("INSERT INTO posts (user_name, drug_name, message, title, created_at, parent_id, category, image_path) VALUES ($1, $2, $3, $4, $5, $6, $7, $8)", 
-         [session[:user], params[:drug_name], params[:message], params[:title], jst_time, p_id, params[:category], image_filename])
-  
+         [session[:user], params[:drug_name], params[:message], params[:title], jst_time, p_id, params[:category], image_url])
+         
   redirect p_id == -1 ? '/' : "/post/#{p_id}"
+
 end
 
 # --- 削除機能 ---
