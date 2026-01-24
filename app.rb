@@ -40,7 +40,7 @@ def setup_db
 
   # 【ここが重要！】 bioカラムがなければ追加する命令
   conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;"
-  
+  conn.exec "ALTER TABLE posts ADD COLUMN IF NOT EXISTS reports INTEGER DEFAULT 0;"
   conn.close
 rescue => e
   puts "DB Setup Error: #{e.message}"
@@ -1076,24 +1076,20 @@ post '/post/:id/report' do
   "<script>alert('通報を受理しました。管理人が内容を確認いたします。'); window.location.href='/post/#{params[:id]}';</script>"
 end
 
-# --- 通報ボタンを押した時の処理 ---
+# --- 通報ボタンを押した時の処理（修正版） ---
 post '/post/:id/report' do
   redirect '/login_page' unless session[:user]
   
-  post_id = params[:id]
-  
-  # ブロックの中で直接DBを開き直すのではなく、
-  # かたばみのアプリですでに定義されているはずの「query」メソッドを使いましょう
   begin
-    # queryメソッドは、内部で自動的にDBを開いて処理してくれるはずだよ
-    query("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = ?", [post_id])
+    # PostgreSQLなので $1 を使用。COALESCEでnil対策もバッチリ！
+    query("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = $1", [params[:id]])
     
     "<script>
       alert('通報を受理しました。管理人が内容を確認いたします。');
-      window.location.href = '/post/#{post_id}';
+      window.location.href = '/post/#{params[:id]}';
     </script>"
   rescue => e
-    # もしこれでもエラーなら、画面に詳しい原因を表示させる
+    # 万が一の時は、ブラウザにエラー内容を出すようにして原因を特定しやすくするよ
     "Internal Error Details: #{e.message}"
   end
 end
