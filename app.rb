@@ -91,7 +91,8 @@ def user_icon(u_name, i_path, size=50)
   font_size = (size * 0.4).to_i
   if i_path && i_path != ""
     # 画像がある場合：object-fit:coverで、どんな縦横比の画像も綺麗に丸く切り抜くよ
-    "<img src='/uploads/#{i_path}' style='width:#{size}px; height:#{size}px; border-radius:50%; object-fit:cover; border:1px solid #eee;'>"
+    full_url = i_path.start_with?('http') ? i_path : "/uploads/#{i_path}"
+    "<img src='#{full_url}' style='width:#{size}px; height:#{size}px; border-radius:50%; object-fit:cover; border:1px solid #eee;'>"
   else
     # 画像がない場合は一文字目
     "<div style='width:#{size}px; height:#{size}px; background:var(--primary); color:white; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:#{font_size}px; font-weight:700;'>#{u_name[0]}</div>"
