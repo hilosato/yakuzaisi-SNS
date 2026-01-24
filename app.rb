@@ -1069,9 +1069,6 @@ end
 post '/post/:id/report' do
   redirect '/login_page' unless session[:user]
   
-  # 通報数を+1するSQL
-  db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [params[:id]])
-  
   # 元のページに戻ってメッセージを出す（本当はもっと丁寧にやりたいけど、まずはこれで！）
   "<script>alert('通報を受理しました。管理人が内容を確認いたします。'); window.location.href='/post/#{params[:id]}';</script>"
 end
