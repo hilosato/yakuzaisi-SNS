@@ -302,7 +302,7 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
       html += "<div class='post-card' style='padding: 25px; margin-bottom: 20px;'>"
       
       # 2. 管理人への通報警告
-      if session[:user] == "かたばみ" && row['reports'].to_i > 0
+      if session[:user] == "かたばみ" && row['reports'] && row['reports'].to_i >= 1
         html += "
           <div style='background: #fff5f5; border: 3px solid #ff3b30; padding: 20px; border-radius: 12px; margin-bottom: 25px;'>
             <p style='color: #ff3b30; font-size: 26px; font-weight: 900; margin: 0; display: flex; align-items: center; gap: 10px;'>
