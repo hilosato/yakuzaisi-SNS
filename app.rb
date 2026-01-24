@@ -59,9 +59,9 @@ end
 CATEGORIES = {
   "インシデントレポート" => "#ff3b30",
   "疑義紹介、処方介入事例" => "#0071e3",
-  "適正使用するためのメモ" => "#64d2ff", # 追加項目（空色）
-  "他職種連携事例" => "#5856d6",
-  "往診同行" => "#32d74b",
+  "適正使用するためのメモ" => "#64d2ff",
+  "往診動向・他職種連携" => "#5856d6",
+  "フィジカルアセスメント" => "#32d74b",
   "保険関連" => "#ff9f0a",
   "【至急】誰か教えて！" => "#af52de",
   "その他独り言" => "#8e8e93"
@@ -1076,12 +1076,14 @@ post '/post/:id/report' do
   "<script>alert('通報を受理しました。管理人が内容を確認いたします。'); window.location.href='/post/#{params[:id]}';</script>"
 end
 
-# --- 通報ボタンを押した時の処理（修正版） ---
+# --- 通報ボタンを押した時の処理 ---
 post '/post/:id/report' do
   redirect '/login_page' unless session[:user]
   
   begin
-    # PostgreSQLなので $1 を使用。COALESCEでnil対策もバッチリ！
+    # (1) db.execute ではなく、定義済みの query メソッドを使う
+    # (2) PostgreSQL なので ? ではなく $1 を使う
+    # (3) reports が nil の場合を想定して COALESCE を使う
     query("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = $1", [params[:id]])
     
     "<script>
@@ -1089,7 +1091,7 @@ post '/post/:id/report' do
       window.location.href = '/post/#{params[:id]}';
     </script>"
   rescue => e
-    # 万が一の時は、ブラウザにエラー内容を出すようにして原因を特定しやすくするよ
+    # 万が一失敗してもエラー内容を画面に出す
     "Internal Error Details: #{e.message}"
   end
 end
