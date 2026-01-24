@@ -1082,17 +1082,18 @@ post '/post/:id/report' do
   
   post_id = params[:id]
   
-  # すでにアプリで定義されている「db」という変数を使って、直接SQLを実行するよ。
-  # もしアプリ全体で「db」という名前でDBを開いているなら、これで動くはず！
+  # ブロックの中で直接DBを開き直すのではなく、
+  # かたばみのアプリですでに定義されているはずの「query」メソッドを使いましょう
   begin
-    db.execute("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = ?", [post_id])
+    # queryメソッドは、内部で自動的にDBを開いて処理してくれるはずだよ
+    query("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = ?", [post_id])
     
     "<script>
       alert('通報を受理しました。管理人が内容を確認いたします。');
       window.location.href = '/post/#{post_id}';
     </script>"
   rescue => e
-    # もしエラーが出たら、画面にその内容を表示して原因を特定する
-    "エラーが発生しました: #{e.message}"
+    # もしこれでもエラーなら、画面に詳しい原因を表示させる
+    "Internal Error Details: #{e.message}"
   end
 end
