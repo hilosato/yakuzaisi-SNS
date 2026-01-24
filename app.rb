@@ -4,6 +4,16 @@ require 'time'
 require 'bcrypt'
 require 'uri'
 require 'cgi'
+require 'cloudinary'
+
+Cloudinary.config do |config|
+  config.cloud_name = ENV['CLOUDINARY_CLOUD_NAME']
+  config.api_key    = ENV['CLOUDINARY_API_KEY']
+  config.api_secret = ENV['CLOUDINARY_API_SECRET']
+  config.secure     = true
+end
+
+
 
 # --- サーバー設定 ---
 set :port, ENV['PORT'] || 4567
@@ -282,17 +292,6 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
 
   query(sql, sql_params) do |res|
     res.each do |row|
-
-
-
-    html += "<div style='font-size:24px; color:red; background:yellow; padding:10px; border:2px solid red; margin-bottom:10px;'>"
-    html += "[DEBUG] ログイン者: #{session[:user].inspect}<br>"
-    html += "[DEBUG] reportsの中身: #{row['reports'].inspect}<br>"
-    html += "[DEBUG] reportsのクラス: #{row['reports'].class}"
-    html += "</div>"
-
-
-
 
       cat_name = row['category'] || "その他独り言"
       display_title = highlight(row['title'], word)
@@ -807,19 +806,19 @@ end
 post '/update_profile' do
   redirect '/login_page' unless session[:user]
   
-  # --- アイコン画像の保存処理 ---
-  icon_filename = nil
+  # --- アイコン画像の保存処理 (Cloudinary) ---
+  icon_url = nil
   if params[:icon_image] && params[:icon_image][:tempfile]
-    icon_filename = "icon_" + Time.now.to_i.to_s + "_" + params[:icon_image][:filename]
-    save_path = "./public/uploads/#{icon_filename}"
-    Dir.mkdir("./public/uploads") unless Dir.exist?("./public/uploads")
-    File.open(save_path, 'wb') { |f| f.write(params[:icon_image][:tempfile].read) }
+    # Cloudinaryに直接アップロード！
+    upload = Cloudinary::Uploader.upload(params[:icon_image][:tempfile].path)
+    # 帰ってきたURLを保存するようにするよ
+    icon_url = upload['secure_url']
   end
 
-  if icon_filename
-    # 画像がある場合は、icon_pathも更新
+  if icon_url
+    # 画像がある場合は、icon_pathにURLを保存
     query("UPDATE users SET email = $1, bio = $2, icon_path = $3 WHERE user_name = $4", 
-          [params[:email], params[:bio], icon_filename, session[:user]])
+          [params[:email], params[:bio], icon_url, session[:user]])
   else
     # 画像がない場合は、これまでの2つだけ更新
     query("UPDATE users SET email = $1, bio = $2 WHERE user_name = $3", 
