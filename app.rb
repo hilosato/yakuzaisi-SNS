@@ -1078,18 +1078,12 @@ end
 
 # --- 通報ボタンを押した時の処理 ---
 post '/post/:id/report' do
-  # ログインしていない人は通報できない（セキュリティ対策）
   redirect '/login_page' unless session[:user]
   
-  # 1. どの投稿かをIDで特定する
   post_id = params[:id]
-
-  # 2. SQLで通報数（reports）を1つ増やす
-  # ※ sns_v2.db を使っているなら、db変数がそれを指していることを確認してね
+  # DBに保存（db変数がちゃんと定義されているか確認してね）
   db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [post_id])
   
-  # 3. 完了したら元のページに戻る
-  # JavaScriptでアラートを出してからリダイレクトさせるよ
   "<script>
     alert('通報を受理しました。管理人が内容を確認いたします。');
     window.location.href = '/post/#{post_id}';
