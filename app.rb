@@ -1077,22 +1077,12 @@ get '/robots.txt' do
   "User-agent: *\nAllow: /"
 end
 
-
-post '/post/:id/report' do
-  redirect '/login_page' unless session[:user]
-  
-  # 元のページに戻ってメッセージを出す（本当はもっと丁寧にやりたいけど、まずはこれで！）
-  "<script>alert('通報を受理しました。管理人が内容を確認いたします。'); window.location.href='/post/#{params[:id]}';</script>"
-end
-
-# --- 通報ボタンを押した時の処理 ---
+# --- 通報ボタンを押した時の処理（これ1つだけに統一！） ---
 post '/post/:id/report' do
   redirect '/login_page' unless session[:user]
   
   begin
-    # (1) db.execute ではなく、定義済みの query メソッドを使う
-    # (2) PostgreSQL なので ? ではなく $1 を使う
-    # (3) reports が nil の場合を想定して COALESCE を使う
+    # 正しく $1 を使ってDBを更新する処理
     query("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = $1", [params[:id]])
     
     "<script>
@@ -1100,7 +1090,6 @@ post '/post/:id/report' do
       window.location.href = '/post/#{params[:id]}';
     </script>"
   rescue => e
-    # 万が一失敗してもエラー内容を画面に出す
     "Internal Error Details: #{e.message}"
   end
 end
