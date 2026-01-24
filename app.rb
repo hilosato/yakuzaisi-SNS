@@ -254,7 +254,7 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
     <div style='margin: 10px 0 30px 0; text-align: right;'>
       <a href='/about' style='text-decoration: none; font-size: 24px; color: var(--primary); font-weight: 800; display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 20px; background: #fff; border-radius: 15px; border: 2px solid #eef6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.03);'>
         <span style='background: var(--primary); color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 24px;'>💡</span>
-        <span>PharmaShareとは？（創設者のメッセージ）</span>
+        <span>PharmaShareとは？（管理人からメッセージ）</span>
       </a>
     </div>
   "
@@ -282,6 +282,18 @@ html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
 
   query(sql, sql_params) do |res|
     res.each do |row|
+
+
+
+    html += "<div style='font-size:24px; color:red; background:yellow; padding:10px; border:2px solid red; margin-bottom:10px;'>"
+    html += "[DEBUG] ログイン者: #{session[:user].inspect}<br>"
+    html += "[DEBUG] reportsの中身: #{row['reports'].inspect}<br>"
+    html += "[DEBUG] reportsのクラス: #{row['reports'].class}"
+    html += "</div>"
+
+
+
+
       cat_name = row['category'] || "その他独り言"
       display_title = highlight(row['title'], word)
       display_drug = highlight(row['drug_name'], word)
