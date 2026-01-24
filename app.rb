@@ -1082,19 +1082,17 @@ post '/post/:id/report' do
   
   post_id = params[:id]
   
-  # 正確性を期して、ここで直接 sns_v2.db を指定して開くよ
-  # ファイル名が posts.db の場合はここを書き換えてね
-  temp_db = SQLite3::Database.new("sns_v2.db")
-  temp_db.results_as_hash = true
-  
-  # 通報数を+1する（テーブル名は posts で合っているはず！）
-  temp_db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [post_id])
-  
-  # 使い終わったら閉じる
-  temp_db.close
-  
-  "<script>
-    alert('通報を受理しました。管理人が内容を確認いたします。');
-    window.location.href = '/post/#{post_id}';
-  </script>"
+  # すでにアプリで定義されている「db」という変数を使って、直接SQLを実行するよ。
+  # もしアプリ全体で「db」という名前でDBを開いているなら、これで動くはず！
+  begin
+    db.execute("UPDATE posts SET reports = COALESCE(reports, 0) + 1 WHERE id = ?", [post_id])
+    
+    "<script>
+      alert('通報を受理しました。管理人が内容を確認いたします。');
+      window.location.href = '/post/#{post_id}';
+    </script>"
+  rescue => e
+    # もしエラーが出たら、画面にその内容を表示して原因を特定する
+    "エラーが発生しました: #{e.message}"
+  end
 end
