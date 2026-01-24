@@ -1081,8 +1081,17 @@ post '/post/:id/report' do
   redirect '/login_page' unless session[:user]
   
   post_id = params[:id]
-  # DBに保存（db変数がちゃんと定義されているか確認してね）
-  db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [post_id])
+  
+  # 正確性を期して、ここで直接 sns_v2.db を指定して開くよ
+  # ファイル名が posts.db の場合はここを書き換えてね
+  temp_db = SQLite3::Database.new("sns_v2.db")
+  temp_db.results_as_hash = true
+  
+  # 通報数を+1する（テーブル名は posts で合っているはず！）
+  temp_db.execute("UPDATE posts SET reports = reports + 1 WHERE id = ?", [post_id])
+  
+  # 使い終わったら閉じる
+  temp_db.close
   
   "<script>
     alert('通報を受理しました。管理人が内容を確認いたします。');
