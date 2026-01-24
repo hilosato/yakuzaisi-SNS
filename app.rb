@@ -376,7 +376,7 @@ get '/post/:id' do
         
         <hr style='border:0; border-top:2px solid #eee; margin:30px 0;'>
 
-        #{ (post['image_path'] && post['image_path'] != "") ? "<div style='margin-bottom:30px;'><img src='/uploads/#{post['image_path']}' style='width:100%; border-radius:15px; border:1px solid #ddd;'></div>" : "" }
+        #{ (post['image_path'] && post['image_path'] != "") ? "<div style='margin-bottom:30px;'><img src='#{post['image_path']}' style='width:100%; border-radius:15px; border:1px solid #ddd;'></div>" : "" }
 
         <div style='white-space: pre-wrap; font-size: 28px; line-height: 1.8; color: var(--text);'>#{CGI.escapeHTML(post['message'])}</div>
 
@@ -446,7 +446,8 @@ get '/post/:id' do
         <div style='font-size: 26px; line-height: 1.6; white-space: pre-wrap;'>#{CGI.escapeHTML(r['message'])}</div>"
       
       if r['image_path'] && r['image_path'] != ""
-        html += "<div style='margin-top:20px;'><img src='/uploads/#{r['image_path']}' style='max-width:100%; border-radius:12px; border:1px solid #ddd;'></div>"
+        # src='#{r['image_path']}' に修正！
+        html += "<div style='margin-top:20px;'><img src='#{r['image_path']}' style='max-width:100%; border-radius:12px; border:1px solid #ddd;'></div>"
       end
       html += "</div>"
     end
