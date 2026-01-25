@@ -70,7 +70,7 @@ CATEGORIES = {
   "インシデントレポート" => "#ff3b30",
   "疑義紹介、処方介入事例" => "#0071e3",
   "適正使用するためのメモ" => "#64d2ff",
-  "往診動向・他職種連携" => "#5856d6",
+  "往診同行・他職種連携" => "#5856d6",
   "フィジカルアセスメント" => "#32d74b",
   "保険関連" => "#ff9f0a",
   "【至急】誰か教えて！" => "#af52de",
@@ -247,7 +247,7 @@ selected_cat = params[:category]
 title = word && word != "" ? "「#{word}」の検索結果" : nil
 
 # header_menu(title) に書き換え
-html = header_menu(title) + "<h1>よりよい薬学業務のために</h1>"
+html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>"
   
   # カテゴリ選択ボタンの表示
   html += "<div style='margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 12px;'>"
