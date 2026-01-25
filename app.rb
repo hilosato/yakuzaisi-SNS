@@ -397,11 +397,11 @@ get '/post/:id' do
           </form>
         </div>
         
-        #{post['user_name'] == session[:user] ? "
-          <form action='/post/#{post['id']}/delete' method='post' style='margin-top:30px; text-align: right;' onsubmit='return confirm(\"本当に削除しますか？\");'>
-            <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 22px; font-weight: 600;'>🗑️ この投稿を削除する</button>
-          </form>" : ""
-        }
+        #{ (post['user_name'] == session[:user] || session[:user] == "かたばみ") ? "
+           <form action='/post/#{post['id']}/delete' method='post' style='margin-top:30px; text-align: right;' onsubmit='return confirm(\"【管理者権限】この投稿を削除しますか？\");'>
+           <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 22px; font-weight: 600;'>🗑️ #{post['user_name'] == session[:user] ? 'この投稿を削除する' : '管理者として削除'}</button>
+           </form>" : ""
+          }
 
         <div class='reply-form' style='margin-top:50px; padding-top:40px; border-top:2px solid #eee;'>
           <h4 style='font-size: 32px; margin-bottom: 25px;'>💬 コメント・返信</h4>
@@ -433,11 +433,17 @@ get '/post/:id' do
             <span style='color:var(--secondary); font-size: 18px; margin-left: 10px;'>#{r['created_at']}</span>
           </div>
           <div style='display:flex; gap:15px;'>"
-      if r['user_name'] == session[:user]
+      if r['user_name'] == session[:user] || session[:user] == "かたばみ"
+        # 編集は本人のみ
+        if r['user_name'] == session[:user]
+          html += "<a href='/post/#{r['id']}/edit' style='font-size: 20px; color:var(--primary); text-decoration:none; font-weight: 700;'>編集</a>"
+        end
+        
+        # 削除ボタン（管理者の場合は文字を変える）
+        del_label = r['user_name'] == session[:user] ? "削除" : "管理者削除"
         html += "
-        <a href='/post/#{r['id']}/edit' style='font-size: 20px; color:var(--primary); text-decoration:none; font-weight: 700;'>編集</a>
         <form action='/post/#{r['id']}/delete' method='post' onsubmit='return confirm(\"この返信を削除しますか？\");'>
-          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 20px; font-weight: 700;'>削除</button>
+          <button type='submit' style='background:none; border:none; color:#ff3b30; cursor:pointer; font-size: 20px; font-weight: 700;'>#{del_label}</button>
         </form>"
       end
       html += "
@@ -528,7 +534,7 @@ post '/post/:id/delete' do
   redirect '/login_page' unless session[:user]
   query("SELECT user_name, parent_id FROM posts WHERE id = $1", [params[:id]]) do |res|
     post = res.first
-    if post && post['user_name'] == session[:user]
+    if post && (post['user_name'] == session[:user] || session[:user] == "かたばみ")
       parent_id = post['parent_id'].to_i
       query("DELETE FROM likes_map WHERE post_id = $1", [params[:id]])
       query("DELETE FROM stars_map WHERE post_id = $1", [params[:id]])
@@ -875,7 +881,10 @@ get '/login_page' do
   # ヘッダーに「ログイン」とタイトルを表示
   header_menu("ログイン") + "
     <div class='container' style='max-width: 1000px;'> <div class='post-card' style='padding: 40px;'>
-        <h2 style='text-align: center; color: var(--primary); font-size: 42px; margin-bottom: 15px;'>🔑 PharmaShareへようこそ</h2>
+        <h2 style='text-align: center; color: var(--primary); font-size: 42px; line-height: 1.4; margin-bottom: 15px;'>
+         <span style='font-size: 24px; color: var(--secondary); display: block; margin-bottom: 5px;'>薬剤師専用SNS</span>
+           🔑 PharmaShareへようこそ
+        </h2>
         <p style='font-size: 26px; color: var(--secondary); text-align: center; margin-bottom: 40px;'>
           薬剤師の知恵を共有し、現場をより良くするコミュニティ
         </p>
