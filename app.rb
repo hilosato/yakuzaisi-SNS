@@ -1109,18 +1109,3 @@ post '/post/:id/report' do
 end
 
 
-
-
-
-
-# --- 【一時的】パスワード強制変更用の秘密のURL ---
-get '/himitsu_change_pw' do
-  # セキュリティのため、誰でもアクセスできないよう簡単な合言葉を設定
-  if params[:key] == "open_sesame"
-    new_digest = BCrypt::Password.create("7275") # ←ここを書き換えて！
-    query("UPDATE users SET password_digest = $1 WHERE user_name = $2", [new_digest, "かたばみ"])
-    "パスワードを正常に更新しました！このコードはすぐに消してデプロイし直してください。"
-  else
-    "合言葉が違います。"
-  end
-end
