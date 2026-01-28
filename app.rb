@@ -260,9 +260,9 @@ html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>
   end
   html += "</div>"
  
-# --- 創設者メッセージへのリンクを追加（全角スペースを除去済） ---
+# --- 創設者メッセージへのリンク ---
   html += "
-    <div style='margin: 10px 0 30px 0; text-align: right;'>
+    <div style='margin: 10px 0 20px 0; text-align: right;'>
       <a href='/about' style='text-decoration: none; font-size: 24px; color: var(--primary); font-weight: 800; display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 20px; background: #fff; border-radius: 15px; border: 2px solid #eef6ff; box-shadow: 0 4px 10px rgba(0,0,0,0.03);'>
         <span style='background: var(--primary); color: white; border-radius: 50%; width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; font-size: 24px;'>💡</span>
         <span>PharmaShareとは？（管理人からメッセージ）</span>
@@ -271,21 +271,22 @@ html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>
   "
 
 # ★「お問い合わせボタンとフォーム」★
+# ボタンを大きく(font-size, padding)、検索窓との隙間を確保(margin-bottom: 40px)
   html += "
-    <div style='margin-top: 10px; text-align: right;'>
-      <button type='button' onclick='toggleContactForm()' style='background-color: #f0f0f0; border: 1px solid #ccc; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8em;'>
+    <div style='margin-bottom: 40px; text-align: right;'>
+      <button type='button' onclick='toggleContactForm()' style='background-color: #f8f9fa; border: 2px solid var(--primary); color: var(--primary); padding: 10px 25px; border-radius: 25px; cursor: pointer; font-size: 1.1em; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.1); transition: 0.3s;'>
         📮 管理人へ要望・感想を送る
       </button>
     </div>
 
-    <div id='contact-form-container' style='display: none; margin-top: 15px; background-color: #fff9e6; padding: 15px; border: 1px dashed #ffcc00; border-radius: 10px; text-align: left;'>
+    <div id='contact-form-container' style='display: none; margin-bottom: 30px; background-color: #fff9e6; padding: 20px; border: 2px dashed #ffcc00; border-radius: 15px; text-align: left;'>
       <h4 style='margin-top: 0;'>📩 管理者へのメッセージ</h4>
-      <p style='font-size: 0.8em; color: #555;'>アカウントをお持ちでない方も、匿名で送れます！</p>
+      <p style='font-size: 0.9em; color: #555;'>アカウントをお持ちでない方も、匿名で送れます！</p>
       
       <form action='/contact' method='post'>
-        <textarea name='content' style='width: 100%; height: 80px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;' placeholder='「こんな機能が欲しい」など、お気軽にどうぞ！' required></textarea>
+        <textarea name='content' style='width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid #ddd;' placeholder='「こんな機能が欲しい」など、お気軽にどうぞ！' required></textarea>
         <div style='text-align: right; margin-top: 10px;'>
-          <button type='submit' style='background-color: #ffcc00; border: none; padding: 8px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;'>送信する</button>
+          <button type='submit' style='background-color: #ffcc00; border: none; padding: 10px 30px; border-radius: 8px; font-weight: bold; cursor: pointer;'>送信する</button>
         </div>
       </form>
     </div>
@@ -302,9 +303,13 @@ html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>
     </script>
   "
 
-  html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}'><button type='submit' class='btn-primary' style='width:100px;'>検索</button></form>"
-  
-
+  # ★検索窓と検索ボタン★
+  html += "
+    <form action='/' method='get' style='display:flex; gap:10px; margin-bottom:30px;'>
+      <input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}' style='flex-grow: 1; padding: 10px; border-radius: 8px; border: 1px solid #ddd;'>
+      <button type='submit' class='btn-primary' style='width: auto; padding: 0 20px; white-space: nowrap; height: 45px;'>検索</button>
+    </form>
+  "
 
 
   
