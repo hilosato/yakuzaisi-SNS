@@ -270,9 +270,39 @@ html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>
     </div>
   "
 
-
   html += "<form action='/' method='get' style='display:flex; gap:10px; margin-bottom:20px;'><input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}'><button type='submit' class='btn-primary' style='width:100px;'>検索</button></form>"
   
+
+<div style="margin-top: 10px;">
+  <button type="button" onclick="toggleContactForm()" style="background-color: #f0f0f0; border: 1px solid #ccc; padding: 5px 15px; border-radius: 20px; cursor: pointer; font-size: 0.8em;">
+    📮 管理人へ要望・感想を送る
+  </button>
+</div>
+
+<div id="contact-form-container" style="display: none; margin-top: 15px; background-color: #fff9e6; padding: 15px; border: 1px dashed #ffcc00; border-radius: 10px;">
+  <h4 style="margin-top: 0;">📩 管理者へのメッセージ</h4>
+  <p style="font-size: 0.8em; color: #555;">アカウントをお持ちでない方も、匿名で送れます！</p>
+  
+  <form action="/contact" method="post">
+    <textarea name="content" style="width: 100%; height: 80px; padding: 8px; border-radius: 5px; border: 1px solid #ddd;" placeholder="「こんな機能が欲しい」など、お気軽にどうぞ！" required></textarea>
+    <div style="text-align: right; margin-top: 10px;">
+      <button type="submit" style="background-color: #ffcc00; border: none; padding: 8px 20px; border-radius: 5px; font-weight: bold; cursor: pointer;">送信する</button>
+    </div>
+  </form>
+</div>
+
+<script>
+function toggleContactForm() {
+  var form = document.getElementById('contact-form-container');
+  if (form.style.display === 'none') {
+    form.style.display = 'block';
+  } else {
+    form.style.display = 'none';
+  }
+}
+</script>
+
+
   # DBクエリの組み立て
   sql = "SELECT * FROM posts WHERE (parent_id = -1) "
   sql_params = []
@@ -527,6 +557,23 @@ post '/post' do
          
   redirect p_id == -1 ? '/' : "/post/#{p_id}"
 
+end
+
+# ★「管理者へのメッセージ用」を追加！★
+post '/contact' do
+  content = params[:content]
+  
+  if content && !content.strip.empty?
+    # Supabaseに作った contacts テーブルに保存
+    query("INSERT INTO contacts (content) VALUES ($1)", [content])
+    
+    # 送信後は、一旦トップページに戻して「送信完了」を知らせる
+    session[:notice] = "メッセージを送信しました。ありがとうございます！"
+    redirect '/'
+  else
+    session[:notice] = "メッセージの内容を入力してください。"
+    redirect '/'
+  end
 end
 
 # --- 削除機能 ---
