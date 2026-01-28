@@ -283,7 +283,7 @@ html += "
     <form action='/contact' method='post'>
       <textarea name='content' style='width: 100%; height: 100px; padding: 10px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box;' placeholder='「こんな機能が欲しい」など...' required></textarea>
       <div style='text-align: right; margin-top: 10px;'>
-        <button type='submit' style='background-color: #ffcc00; border: none; padding: 10px 30px; border-radius: 8px; font-weight: bold; cursor: pointer;'>送信する</button>
+        <button type='submit' style='background-color: #ffcc00; border: none; padding: 12px 40px; border-radius: 8px; font-weight: bold; font-size: 1.1em; cursor: pointer; box-shadow: 0 4px 0 #d9ae00; active { transform: translateY(2px); box-shadow: 0 2px 0 #d9ae00; }'>送信する</button>
       </div>
     </form>
   </div>
