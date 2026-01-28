@@ -241,81 +241,33 @@ end
 # --- ホーム画面 ---
 get '/' do
   word = params[:search]
-selected_cat = params[:category]
-
-
-
-
-# --- 管理者専用：メッセージ一覧画面 ---
-get '/admin/messages' do
-  # かたばみ本人じゃない場合はアクセス禁止！
-  unless session[:user] == "かたばみ"
-    session[:notice] = "このページは管理者専用です。"
-    redirect '/'
-  end
-
-  # headerを表示（タイトルは「受信メッセージ」）
-  html = header_menu("受信メッセージ")
-  html += "<h1 style='color: var(--primary);'>📩 管理者へのメッセージ一覧</h1>"
-  html += "<div style='margin-bottom: 20px;'><a href='/' class='btn-secondary'>← トップに戻る</a></div>"
-
-  # contactsテーブルから最新順に取得
-  query("SELECT * FROM contacts ORDER BY created_at DESC") do |res|
-    if res.any?
-      res.each do |row|
-        html += "
-          <div style='background: white; border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
-            <div style='font-size: 0.8em; color: #888; margin-bottom: 10px;'>受信日時: #{row['created_at']}</div>
-            <div style='white-space: pre-wrap; font-size: 1.1em; line-height: 1.6;'>#{CGI.escapeHTML(row['content'])}</div>
-          </div>
-        "
-      end
-    else
-      html += "<p>まだメッセージはありません。</p>"
-    end
-  end
-
-  html
-end
-
-
-
-
-
-
-
-
-
-
-
-# この1行を追加（タイトルの準備）
-title = word && word != "" ? "「#{word}」の検索結果" : nil
-
-# header_menu(title) に書き換え
-html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>"
-  
+  selected_cat = params[:category]
+   # この1行を追加（タイトルの準備）
+  title = word && word != "" ? "「#{word}」の検索結果" : nil
+  # header_menu(title) に書き換え
+  html = header_menu(title) + "<h1>よりよい薬学業務のための投稿</h1>"
   # カテゴリ選択ボタンの表示
   html += "<div style='margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 12px;'>"
   html += "<a href='/' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #ddd; background: #{selected_cat ? 'white' : '#666'}; color: #{selected_cat ? '#666' : 'white'}; font-weight: bold;'>すべて</a>"
   CATEGORIES.each do |name, color|
-    is_active = (selected_cat == name)
-    bg_color = is_active ? color : "white"
-    text_color = is_active ? "white" : color # 未選択時は枠線の色と同じにして視認性アップ
-    html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
+      is_active = (selected_cat == name)
+      bg_color = is_active ? color : "white"
+      text_color = is_active ? "white" : color # 未選択時は枠線の色と同じにして視認性アップ
+      html += "<a href='/?category=#{CGI.escape(name)}' style='text-decoration:none; padding: 12px 20px; border-radius: 12px; font-size: 22px; border: 2px solid #{color}; background: #{bg_color}; color: #{text_color}; font-weight: bold;'>#{name}</a>"
   end
   html += "</div>"
  
-# --- 創設者メッセージへのリンク ---
-html += "
+ # --- 創設者メッセージへのリンク ---
+  html += "
   <div style='margin: 10px 0 10px 0; text-align: right;'>
     <a href='/about' style='text-decoration: none; font-size: 1.1em; color: var(--primary); font-weight: bold; display: inline-flex; align-items: center; justify-content: flex-end; gap: 10px; padding: 10px 25px; background: #fff; border-radius: 25px; border: 1px solid var(--primary); box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
       <span>💡 PharmaShareとは？</span>
     </a>
   </div>
-"
+ "
 
-# ★「お問い合わせボタンとフォーム」★
-html += "
+ # ★「お問い合わせボタンとフォーム」★
+  html += "
   <div style='margin-bottom: 30px; text-align: right;'>
     <button type='button' onclick='toggleContactForm()' style='background-color: #fff; border: 1px solid var(--primary); color: var(--primary); padding: 10px 25px; border-radius: 25px; cursor: pointer; font-size: 1.1em; font-weight: bold; box-shadow: 0 2px 5px rgba(0,0,0,0.05); transition: 0.3s;'>
       📮 管理人へ要望・感想を送る
@@ -339,10 +291,10 @@ html += "
     form.style.display = (form.style.display === \"none\") ? \"block\" : \"none\";
   }
   </script>
-"
+  "
 
-# ★検索窓と検索ボタン（高さを 45px で完全固定）★
-html += "
+  # ★検索窓と検索ボタン（高さを 45px で完全固定）★
+  html += "
   <form action='/' method='get' style='display:flex; gap:10px; margin-bottom:30px; align-items: center;'>
     <input type='text' name='search' placeholder='キーワード検索...' value='#{CGI.escapeHTML(word.to_s)}' 
            style='flex-grow: 1; height: 45px; padding: 0 15px; border-radius: 8px; border: 1px solid #ddd; box-sizing: border-box; font-size: 16px;'>
@@ -351,7 +303,7 @@ html += "
       検索
     </button>
   </form>
-"
+ "
 
   
   # DBクエリの組み立て
@@ -418,6 +370,44 @@ html += "
   end
   html + "</div>"
 end
+
+
+
+
+# --- 管理者専用：メッセージ一覧画面 ---
+get '/admin/messages' do
+  # かたばみ本人じゃない場合はアクセス禁止！
+  unless session[:user] == "かたばみ"
+    session[:notice] = "このページは管理者専用です。"
+    redirect '/'
+  end
+
+  # headerを表示（タイトルは「受信メッセージ」）
+  html = header_menu("受信メッセージ")
+  html += "<h1 style='color: var(--primary);'>📩 管理者へのメッセージ一覧</h1>"
+  html += "<div style='margin-bottom: 20px;'><a href='/' class='btn-secondary'>← トップに戻る</a></div>"
+
+  # contactsテーブルから最新順に取得
+  query("SELECT * FROM contacts ORDER BY created_at DESC") do |res|
+    if res.any?
+      res.each do |row|
+        html += "
+          <div style='background: white; border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
+            <div style='font-size: 0.8em; color: #888; margin-bottom: 10px;'>受信日時: #{row['created_at']}</div>
+            <div style='white-space: pre-wrap; font-size: 1.1em; line-height: 1.6;'>#{CGI.escapeHTML(row['content'])}</div>
+          </div>
+        "
+      end
+    else
+      html += "<p>まだメッセージはありません。</p>"
+    end
+  end
+
+  html
+end
+
+
+
 
 # --- 投稿詳細 ---
 get '/post/:id' do
