@@ -389,34 +389,33 @@ end
 
 # --- 管理者専用：メッセージ一覧画面 ---
 get '/admin/messages' do
-  # かたばみ本人じゃない場合はアクセス禁止！
   unless session[:user] == "かたばみ"
     session[:notice] = "このページは管理者専用です。"
     redirect '/'
+    return # ← ここに return を入れるとより安全！
   end
 
-  # headerを表示（タイトルは「受信メッセージ」）
   html = header_menu("受信メッセージ")
+  html += "<div class='container'>" # コンテナで囲む
   html += "<h1 style='color: var(--primary);'>📩 管理者へのメッセージ一覧</h1>"
-  html += "<div style='margin-bottom: 20px;'><a href='/' class='btn-secondary'>← トップに戻る</a></div>"
+  html += "<div style='margin-bottom: 20px;'><a href='/' style='text-decoration:none; color:var(--primary); font-weight:bold;'>← トップに戻る</a></div>"
 
-  # contactsテーブルから最新順に取得
   query("SELECT * FROM contacts ORDER BY created_at DESC") do |res|
-    if res.any?
+    if res && res.any?
       res.each do |row|
         html += "
-          <div style='background: white; border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);'>
+          <div style='background: white; border: 1px solid #ddd; padding: 20px; border-radius: 12px; margin-bottom: 15px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); text-align: left;'>
             <div style='font-size: 0.8em; color: #888; margin-bottom: 10px;'>受信日時: #{row['created_at']}</div>
-            <div style='white-space: pre-wrap; font-size: 1.1em; line-height: 1.6;'>#{CGI.escapeHTML(row['content'])}</div>
-          </div>
-        "
+            <div style='white-space: pre-wrap; font-size: 1.1em; line-height: 1.6; color: #333;'>#{CGI.escapeHTML(row['content'].to_s)}</div>
+          </div>"
       end
     else
       html += "<p>まだメッセージはありません。</p>"
     end
   end
 
-  html
+  html += "</div>" # コンテナを閉じる
+  html # ← 最後、必ずこの変数を置いて Sinatra に渡す！
 end
 
 
