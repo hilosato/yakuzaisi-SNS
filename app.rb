@@ -265,6 +265,17 @@ get '/' do
     </a>
   </div>
  "
+  # ★管理者だけに見える秘密のリンク 管理者へのメッセージのページへ★
+  if session[:user] == "かたばみ"
+   html += "
+     <div style='margin: 5px 0 15px 0; text-align: right;'>
+       <a href='/admin/messages' style='text-decoration: none; font-size: 0.9em; color: #e67e22; font-weight: bold; display: inline-flex; align-items: center; gap: 5px; padding: 5px 15px; background: #fffaf5; border-radius: 10px; border: 1px solid #ffcc00;'>
+         <span>🔑 受信メッセージを確認する</span>
+       </a>
+     </div>
+    "
+  end
+
 
  # ★「お問い合わせボタンとフォーム」★
   html += "
@@ -370,6 +381,8 @@ get '/' do
   end
   html + "</div>"
 end
+
+
 
 
 
