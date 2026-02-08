@@ -947,6 +947,13 @@ post '/auth' do
   user = nil
   query("SELECT * FROM users WHERE user_name = $1", [user_name]) { |res| user = res.first if res.any? }
 
+  # --- ログ出力（Renderのログで見れるよ） ---
+  puts "--- Debug Auth ---"
+  puts "User Name: [#{user_name}]"
+  puts "Mode: [#{mode}]"
+  puts "User Found In DB: #{user ? 'Yes (ID:' + user['id'].to_s + ')' : 'No'}"
+  puts "------------------"
+
   if mode == 'login'
     # ログインモードの場合
     if user
