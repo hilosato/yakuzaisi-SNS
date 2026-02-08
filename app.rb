@@ -23,46 +23,58 @@ use Rack::Session::Cookie, :key => 'rack.session',
                            :path => '/',
                            :secret => 'katabami_pharmashare_2026_fixed_secret_key_long_long_long_long_64chars_over'
 
-# --- データベース接続設定 ---
-def db_connection
+# --- データベース接続設定（高速化・安定化版） ---
+$db = nil # 接続を保持するためのグローバル変数
+
+def get_connection
   db_url = ENV['DATABASE_URL']
   uri = URI.parse(db_url || 'postgres://localhost/pharmashare')
-  
-  PG.connect(
-    host: uri.host,
-    port: uri.port,
-    dbname: uri.path[1..-1],
-    user: uri.user,
-    password: uri.password,
-    connect_timeout: 10
-  )
+
+  # 接続がない、または切れている場合は新しく繋ぐ
+  if $db.nil? || $db.status != PG::CONNECTION_OK
+    puts "Connecting to Database..."
+    $db = PG.connect(
+      host: uri.host,
+      port: uri.port,
+      dbname: uri.path[1..-1],
+      user: uri.user,
+      password: uri.password,
+      connect_timeout: 10
+    )
+  end
+  $db
+rescue => e
+  puts "DB Connection Error: #{e.message}"
+  $db = nil
+  raise e
 end
 
 # テーブル作成
 def setup_db
-  conn = db_connection
-  # 既存のテーブル作成
+  conn = get_connection # 使い回しの接続を取得
   conn.exec "CREATE TABLE IF NOT EXISTS posts (id SERIAL PRIMARY KEY, user_name TEXT, drug_name TEXT, likes INTEGER DEFAULT 0, stars INTEGER DEFAULT 0, message TEXT, parent_id INTEGER DEFAULT -1, created_at TEXT, title TEXT, image_path TEXT, category TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS users (id SERIAL PRIMARY KEY, user_name TEXT UNIQUE, password_digest TEXT, email TEXT);"
   conn.exec "CREATE TABLE IF NOT EXISTS likes_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
   conn.exec "CREATE TABLE IF NOT EXISTS stars_map (id SERIAL PRIMARY KEY, user_name TEXT, post_id INTEGER);"
   conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS icon_path TEXT;"
-
-  # 【ここが重要！】 bioカラムがなければ追加する命令
   conn.exec "ALTER TABLE users ADD COLUMN IF NOT EXISTS bio TEXT;"
   conn.exec "ALTER TABLE posts ADD COLUMN IF NOT EXISTS reports INTEGER DEFAULT 0;"
-  conn.close
+  # ここで conn.close はしない（使い回すため）
 rescue => e
   puts "DB Setup Error: #{e.message}"
 end
 setup_db
 
+# クエリ実行メソッド
 def query(sql, params = [])
-  conn = db_connection
+  conn = get_connection # 使い回しの接続を取得
   res = conn.exec_params(sql, params)
   yield res if block_given?
-ensure
-  conn.close if conn
+  # ここでも conn.close はしない！
+rescue PG::Error => e
+  puts "Query Error: #{e.message}"
+  $db = nil # 接続エラーが起きたらリセットして次回再接続を促す
+  raise e
 end
 
 # ① カテゴリ追加（適正使用するためのメモを追加）
